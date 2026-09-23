@@ -1,0 +1,21 @@
+:root {
+  /* Paleta de la presentación (Sprint 0) */
+  --color-primary: #1f2a5c;
+  --color-secondary: #2e7f8f;
+  --color-bg: #f3f4f8;
+
+  --color-surface: #ffffff;
+  --color-text: #1b1f2e;
+  --color-text-muted: #5b6275;
+  --color-border: #dfe2ea;
+  --color-on-primary: #ffffff;
+
+  --font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --radius: 8px;
+  --space-1: 0.5rem;
+  --space-2: 1rem;
+  --space-3: 1.5rem;
+  --space-4: 2rem;
+
+  --sidebar-width: 240px;
+}

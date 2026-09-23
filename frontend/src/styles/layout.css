@@ -1,0 +1,120 @@
+/* ---------- AuthLayout (pantallas públicas) ---------- */
+.auth-layout {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.auth-header {
+  padding: var(--space-2) var(--space-4);
+  background: var(--color-primary);
+}
+
+.auth-header a {
+  color: var(--color-on-primary);
+  font-weight: bold;
+  text-decoration: none;
+}
+
+.auth-main {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: var(--space-4) var(--space-2);
+}
+
+.auth-card {
+  width: 100%;
+  max-width: 480px;
+  padding: var(--space-4);
+  background: var(--color-surface);
+  border-radius: var(--radius);
+  box-shadow: 0 2px 8px rgb(0 0 0 / 0.08);
+}
+
+/* ---------- DashboardLayout (app autenticada) ---------- */
+.dashboard-layout {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: var(--sidebar-width) 1fr;
+  grid-template-rows: auto 1fr;
+  grid-template-areas:
+    'sidebar header'
+    'sidebar main';
+}
+
+.dashboard-header {
+  grid-area: header;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-4);
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.dashboard-main {
+  grid-area: main;
+  padding: var(--space-4);
+}
+
+.sidebar {
+  grid-area: sidebar;
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+  padding: var(--space-3) var(--space-2);
+}
+
+.sidebar-brand {
+  display: block;
+  font-weight: bold;
+  font-size: 1.2rem;
+  margin-bottom: var(--space-3);
+  color: var(--color-on-primary);
+  text-decoration: none;
+}
+
+.sidebar nav {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.sidebar-link {
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius);
+  color: var(--color-on-primary);
+  text-decoration: none;
+  opacity: 0.85;
+}
+
+.sidebar-link:hover {
+  opacity: 1;
+  background: rgb(255 255 255 / 0.08);
+}
+
+.sidebar-link.active {
+  opacity: 1;
+  background: var(--color-secondary);
+}
+
+@media (max-width: 768px) {
+  .dashboard-layout {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      'sidebar'
+      'header'
+      'main';
+  }
+
+  .sidebar nav {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+
+  .dashboard-main {
+    padding: var(--space-2);
+  }
+}
