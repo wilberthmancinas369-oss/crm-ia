@@ -4,7 +4,7 @@ import { BrowserRouter } from 'react-router-dom'
 import AppRoutes from './routes/AppRoutes'
 import './styles/variables.css'
 import './styles/global.css'
-
+import './index.css'
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <BrowserRouter>
