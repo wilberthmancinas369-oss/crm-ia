@@ -1,14 +1,10 @@
-const oportunidadesService = require('../services/oportunidades.service');
+import oportunidadesService from '../services/oportunidades.service.js';
 
 const oportunidadesController = {
   // Crear oportunidad
   async create(req, res) {
     try {
       const { nombre_oportunidad, valor_estimado, etapa, fecha_cierre_prevista, probabilidad, contacto_id, empresa_id } = req.body;
-      
-      if (!nombre_oportunidad || !empresa_id || !contacto_id) {
-        return res.status(400).json({ error: 'El nombre de la oportunidad, el empresa_id y el contacto_id son obligatorios' });
-      }
 
       const oportunidad = await oportunidadesService.create({
         nombre_oportunidad, valor_estimado, etapa, fecha_cierre_prevista, probabilidad, contacto_id, empresa_id
@@ -24,10 +20,6 @@ const oportunidadesController = {
   async getAll(req, res) {
     try {
       const { empresa_id } = req.query;
-      
-      if (!empresa_id) {
-        return res.status(400).json({ error: 'El empresa_id es obligatorio' });
-      }
 
       const oportunidades = await oportunidadesService.getAll(empresa_id);
       res.json(oportunidades);
@@ -41,10 +33,6 @@ const oportunidadesController = {
     try {
       const { id } = req.params;
       const { empresa_id } = req.query;
-      
-      if (!empresa_id) {
-        return res.status(400).json({ error: 'El empresa_id es obligatorio' });
-      }
 
       const oportunidad = await oportunidadesService.getById(id, empresa_id);
       if (!oportunidad) return res.status(404).json({ error: 'Oportunidad no encontrada' });
@@ -61,10 +49,6 @@ const oportunidadesController = {
       const { id } = req.params;
       const { empresa_id, ...updateData } = req.body;
 
-      if (!empresa_id) {
-        return res.status(400).json({ error: 'El empresa_id es obligatorio' });
-      }
-
       const oportunidad = await oportunidadesService.update(id, empresa_id, updateData);
       if (!oportunidad) return res.status(404).json({ error: 'Oportunidad no encontrada' });
       
@@ -80,10 +64,6 @@ const oportunidadesController = {
       const { id } = req.params;
       const { empresa_id } = req.query;
 
-      if (!empresa_id) {
-        return res.status(400).json({ error: 'El empresa_id es obligatorio' });
-      }
-
       await oportunidadesService.delete(id, empresa_id);
       res.json({ message: 'Oportunidad eliminada correctamente' });
     } catch (error) {
@@ -92,4 +72,4 @@ const oportunidadesController = {
   }
 };
 
-module.exports = oportunidadesController;
+export default oportunidadesController;

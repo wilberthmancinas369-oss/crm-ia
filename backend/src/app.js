@@ -1,6 +1,7 @@
-const express = require('express');
-const cors = require('cors');
-require('dotenv').config();
+import express from 'express';
+import cors from 'cors';
+import dotenv from 'dotenv'
+dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -10,8 +11,8 @@ app.use(cors());
 app.use(express.json());
 
 // Rutas
-const contactosRoutes = require('./routes/contactos.routes');
-const oportunidadesRoutes = require('./routes/oportunidades.routes');
+import contactosRoutes from './routes/contactos.routes.js';
+import oportunidadesRoutes from './routes/oportunidades.routes.js'
 
 app.use('/api/contactos', contactosRoutes);
 app.use('/api/oportunidades', oportunidadesRoutes);

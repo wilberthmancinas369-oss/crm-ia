@@ -1,4 +1,5 @@
-const supabase = require('../config/supabase');
+import supabase from '../config/supabase.js';
+
 
 const oportunidadesService = {
   // CREATE: Crear una nueva oportunidad
@@ -65,4 +66,5 @@ const oportunidadesService = {
   }
 };
 
-module.exports = oportunidadesService;
+export default oportunidadesService
+

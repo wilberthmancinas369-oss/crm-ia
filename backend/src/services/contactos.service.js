@@ -1,4 +1,4 @@
-const supabase = require('../config/supabase');
+import supabase from '../config/supabase.js';
 
 const contactosService = {
   // CREATE: Crear un nuevo contacto
@@ -65,4 +65,4 @@ const contactosService = {
   }
 };
 
-module.exports = contactosService;
+export default contactosService;
