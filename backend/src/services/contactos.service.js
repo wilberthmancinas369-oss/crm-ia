@@ -1,68 +1,64 @@
 import supabase from '../config/supabase.js';
 
-const contactosService = {
-  // CREATE: Crear un nuevo contacto
-  async create(data) {
-    const { data: contacto, error } = await supabase
-      .from('contactos')
-      .insert([data])
-      .select()
-      .single();
-    
-    if (error) throw error;
-    return contacto;
-  },
-
-  // READ: Obtener todos los contactos de una empresa (Multi-tenant)
-  async getAll(empresaId) {
+export const contactosService = {
+  // Obtener todos los contactos
+  async getAll() {
     const { data, error } = await supabase
       .from('contactos')
       .select('*')
-      .eq('empresa_id', empresaId)
-      .order('nombre', { ascending: true });
-    
+      .order('created_at', { ascending: false });
+
     if (error) throw error;
     return data;
   },
 
-  // READ: Obtener un solo contacto por ID y empresa
-  async getById(id, empresaId) {
+  // Obtener un contacto por ID incluyendo sus oportunidades e interacciones asociadas
+  async getById(id) {
     const { data, error } = await supabase
       .from('contactos')
-      .select('*')
+      .select(`
+        *,
+        oportunidades (*),
+        interacciones (*)
+      `)
       .eq('id', id)
-      .eq('empresa_id', empresaId)
       .single();
-    
+
     if (error) throw error;
     return data;
   },
 
-  // UPDATE: Actualizar datos de un contacto
-  async update(id, empresaId, data) {
-    const { data: contacto, error } = await supabase
+  // Crear un nuevo contacto
+  async create(contactoData) {
+    const { data, error } = await supabase
       .from('contactos')
-      .update(data)
-      .eq('id', id)
-      .eq('empresa_id', empresaId)
-      .select()
-      .single();
-    
+      .insert([contactoData])
+      .select();
+
     if (error) throw error;
-    return contacto;
+    return data[0];
   },
 
-  // DELETE: Eliminar un contacto
-  async delete(id, empresaId) {
-    const { error } = await supabase
+  // Actualizar un contacto existente
+  async update(id, contactoData) {
+    const { data, error } = await supabase
+      .from('contactos')
+      .update(contactoData)
+      .eq('id', id)
+      .select();
+
+    if (error) throw error;
+    return data[0];
+  },
+
+  // Eliminar un contacto
+  async delete(id) {
+    const { data, error } = await supabase
       .from('contactos')
       .delete()
-      .eq('id', id)
-      .eq('empresa_id', empresaId);
-    
+      .eq('id', id);
+
     if (error) throw error;
     return true;
   }
 };
-
-export default contactosService;
