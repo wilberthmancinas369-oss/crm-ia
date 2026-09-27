@@ -115,6 +115,10 @@ const invitationController = {
       const expiresAt = new Date();
       expiresAt.setDate(expiresAt.getDate() + 7); // Valido por 7 días
 
+      // Construye el link de invitación utilizando la URL base del frontend
+      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+      const invitationLink = `${frontendUrl}/accept-invitation?token=${token}`;
+
       //Guarda la invitación en la base de datos con estado 'pendiente'
       const { data: inviteData, error: saveError } = await supabase
         .from('invitations')
@@ -137,7 +141,7 @@ const invitationController = {
       //Enviar correo electrónico con el token de invitación
       const emailResult = await emailService.sendInvitation(
         email,
-        token,
+        invitationLink,
         group.name,
         role.name
       );
