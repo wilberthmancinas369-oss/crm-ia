@@ -1,8 +1,4 @@
 /**
- * Middleware to authorize users based on their role level.
- * Hierarchy: Agente (0) -> Jefe de Área (1) -> Administrador (2)
- */
-/**
  * Middleware para autorizar a los usuarios según su nivel de rol.
  * Jerarquía: Agente (0) -> Jefe de Área (1) -> Administrador (2)
  */
