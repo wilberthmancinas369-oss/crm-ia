@@ -3,6 +3,65 @@ const supabase = require('../supabaseClient');
 const emailService = require('../services/emailService');
 
 const invitationController = {
+  async acceptInvitation(req, res) {
+    try {
+      const { token, user_id } = req.body;
+
+      if (!token || !user_id) {
+        return res.status(400).json({ error: 'El token y el ID de usuario son obligatorios' });
+      }
+
+      // 1. Validar invitación por token
+      const { data: invite, error: inviteErr } = await supabase
+        .from('invitations')
+        .select('*')
+        .eq('token', token)
+        .eq('status', 'pendiente')
+        .single();
+
+      if (inviteErr || !invite) {
+        return res.status(404).json({ error: 'Invitación no válida o ya procesada' });
+      }
+
+      // 2. Verificar expiración
+      if (new Date() > new Date(invite.expires_at)) {
+        await supabase
+          .from('invitations')
+          .update({ status: 'expirada' })
+          .eq('id', invite.id);
+        return res.status(410).json({ error: 'La invitación ha expirado' });
+      }
+
+      // 3. Asignar el rol y grupo al usuario (Lógica de asignación de rol)
+      const { error: assignError } = await supabase
+        .from('user_group_role')
+        .insert([
+          {
+            user_id: user_id,
+            group_id: invite.group_id,
+            role_id: invite.role_id,
+            company_id: invite.company_id
+          }
+        ]);
+
+      if (assignError) throw assignError;
+
+      // 4. Actualizar estado de la invitación
+      const { error: updateError } = await supabase
+        .from('invitations')
+        .update({ status: 'aceptada' })
+        .eq('id', invite.id);
+
+      if (updateError) throw updateError;
+
+      return res.status(200).json({ message: 'Invitación aceptada y rol asignado exitosamente' });
+
+    } catch (error) {
+      console.error('Accept Invitation Error:', error);
+      return res.status(500).json({ error: 'Error interno al procesar la aceptación de la invitación' });
+    }
+  },
+
   async inviteUser(req, res) {
     try {
       const groupId = req.params.id;
