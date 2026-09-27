@@ -1,89 +1,55 @@
-import express from 'express'
-import { body, param, query, validationResult } from 'express-validator';
-const router = express.Router();
-import contactosController from '../controllers/contactos.controller.js' 
+import { Router } from 'express';
+import { body } from 'express-validator';
 import { validarCampos } from '../middlewares/validarCampos.js';
+import {
+  getContactos,
+  getContactoById,
+  createContacto,
+  updateContacto,
+  deleteContacto
+} from '../controllers/contactos.controller.js';
 
+const router = Router();
+
+// Rutas de lectura
+router.get('/', getContactos);
+router.get('/:id', getContactoById);
+
+// Reglas de validación para reutilizar o aplicar en las peticiones
+// Reemplaza tus validaciones base en contactos.routes.js:
+// Reemplaza tus validaciones base en contactos.routes.js:
+const validacionesBase = [
+  body('nombre').optional().notEmpty().withMessage('El nombre no puede estar vacío'),
+  body('apellido').optional().isString().withMessage('El apellido debe ser texto'),
+  body('email').optional({ checkFalsy: true }).isEmail().withMessage('Debe proporcionar un email válido'),
+  body('telefono').optional().isString().withMessage('El teléfono debe ser texto'),
+  body('cargo').optional().isString().withMessage('El cargo debe ser texto'),
+  body('empresa_cliente').optional().isString().withMessage('El nombre de la empresa debe ser texto'),
+  body('notas').optional().isString().withMessage('Las notas deben ser texto'),
+];
+
+// Creación (POST): Requiere obligatoriamente el nombre
 router.post(
   '/',
   [
-    body('empresa_id')
-      .optional()
-      .isUUID().withMessage('El empresa_id debe ser un UUID válido'),
-    body('nombre')
-      .notEmpty().withMessage('El nombre es obligatorio')
-      .isString().withMessage('El nombre debe ser texto')
-      .trim(),
-    body('email')
-      .optional()
-      .isEmail().withMessage('Debe ser un email válido')
-      .normalizeEmail(),
-    body('telefono')
-      .optional()
-      .isString().withMessage('El teléfono debe ser una cadena de texto'),
-    body('apellido').optional().isString().trim(),
-    body('cargo').optional().isString().trim(),
-    body('empresa_cliente').optional().isString().trim(),
-    body('notas').optional().isString(),
+    body('nombre').notEmpty().withMessage('El nombre es obligatorio'),
+    ...validacionesBase,
     validarCampos
   ],
-  contactosController.create
+  createContacto
 );
 
-// 2. Leer todos los contactos de una empresa
-router.get(
-  '/',
-  [
-    query('empresa_id')
-      .notEmpty().withMessage('El empresa_id es obligatorio en la URL (?empresa_id=...)')
-      .isUUID().withMessage('El empresa_id debe ser un UUID válido'),
-    validarCampos
-  ],
-  contactosController.getAll
-);
-
-// 3. Leer un contacto por ID
-router.get(
-  '/:id',
-  [
-    param('id')
-      .isUUID().withMessage('El ID del contacto en la URL debe ser un UUID válido'),
-    query('empresa_id')
-      .notEmpty().withMessage('El empresa_id es obligatorio en los parámetros de consulta (?empresa_id=...)')
-      .isUUID().withMessage('El empresa_id debe ser un UUID válido'),
-    validarCampos
-  ],
-  contactosController.getById
-);
-
-// 4. Actualizar contacto
+// Actualización (PUT): Todos los campos son opcionales pero si se envían, se valida su formato
 router.put(
   '/:id',
   [
-    param('id')
-      .isUUID().withMessage('El ID del contacto en la URL debe ser un UUID válido'),
-    body('empresa_id')
-      .optional()
-      .isUUID().withMessage('El empresa_id debe ser un UUID válido'),
-    body('nombre').optional().notEmpty().withMessage('El nombre no puede estar vacío').trim(),
-    body('email').optional().isEmail().withMessage('Debe ser un email válido').normalizeEmail(),
+    ...validacionesBase,
     validarCampos
   ],
-  contactosController.update
+  updateContacto
 );
 
-// 5. Eliminar contacto
-router.delete(
-  '/:id',
-  [
-    param('id')
-      .isUUID().withMessage('El ID del contacto debe ser un UUID válido'),
-    query('empresa_id')
-      .notEmpty().withMessage('El empresa_id es obligatorio en la URL')
-      .isUUID().withMessage('El empresa_id debe ser un UUID válido'),
-    validarCampos
-  ],
-  contactosController.delete
-);
+// Eliminación (DELETE)
+router.delete('/:id', deleteContacto);
 
 export default router;
