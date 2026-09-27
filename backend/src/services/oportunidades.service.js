@@ -1,63 +1,69 @@
 import supabase from '../config/supabase.js';
 
 export const oportunidadesService = {
-  // Obtener todas las oportunidades
-  async getAll() {
+  // Obtener todas las oportunidades de una empresa (Multi-tenant)
+  async getAll(empresaId) {
     const { data, error } = await supabase
       .from('oportunidades')
-      .select('*')
+      .select('*, contactos(nombre, apellido)')
+      .eq('empresa_id', empresaId)
       .order('created_at', { ascending: false });
-
+    
     if (error) throw error;
     return data;
   },
 
-  // Obtener una oportunidad por ID con los datos del contacto asociado
-  async getById(id) {
+  // Obtener una oportunidad por ID y empresa
+  async getById(id, empresaId) {
     const { data, error } = await supabase
       .from('oportunidades')
-      .select(`
-        *,
-        contactos (*)
-      `)
+      .select('*, contactos(nombre, apellido)')
       .eq('id', id)
+      .eq('empresa_id', empresaId)
       .single();
-
+    
     if (error) throw error;
     return data;
   },
 
-  // Crear una oportunidad
-  async create(oportunidadData) {
-    const { data, error } = await supabase
+  // Crear una oportunidad (Usando campos del diagrama: titulo, valor, etapa, fecha_cierre)
+  async create(data) {
+    const { data: oportunidad, error } = await supabase
       .from('oportunidades')
-      .insert([oportunidadData])
-      .select();
-
+      .insert([data])
+      .select()
+      .single();
+    
     if (error) throw error;
-    return data[0];
+    return oportunidad;
   },
 
   // Actualizar una oportunidad
-  async update(id, oportunidadData) {
-    const { data, error } = await supabase
+  async update(id, empresaId, data) {
+    const { data: oportunidad, error } = await supabase
       .from('oportunidades')
-      .update(oportunidadData)
+      .update(data)
       .eq('id', id)
-      .select();
-
+      .eq('empresa_id', empresaId)
+      .select()
+      .single();
+    
     if (error) throw error;
-    return data[0];
+    return oportunidad;
   },
 
   // Eliminar una oportunidad
-  async delete(id) {
-    const { data, error } = await supabase
+  async delete(id, empresaId) {
+    const { error } = await supabase
       .from('oportunidades')
       .delete()
-      .eq('id', id);
-
+      .eq('id', id)
+      .eq('empresa_id', empresaId);
+    
     if (error) throw error;
     return true;
   }
 };
+
+// El export ya se define al inicio con "export const oportunidadesService"
+
