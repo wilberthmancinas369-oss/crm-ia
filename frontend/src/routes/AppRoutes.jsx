@@ -11,6 +11,7 @@ import Contactos from '../pages/Contactos'
 import Oportunidades from '../pages/Oportunidades'
 import Grupos from '../pages/Grupos'
 import InvitarUsuario from '../pages/InvitarUsuario'
+import Bienvenida from '../pages/Bienvenida'
 
 export default function AppRoutes() {
   return (
@@ -27,6 +28,7 @@ export default function AppRoutes() {
       <Route path="/app" element={<ProtectedRoute />}>
         <Route element={<DashboardLayout />}>
           <Route index element={<Navigate to="contactos" replace />} />
+          <Route path="bienvenida" element={<Bienvenida />} />
           <Route path="contactos" element={<Contactos />} />
           <Route path="oportunidades" element={<Oportunidades />} />
           <Route path="grupos" element={<Grupos />} />

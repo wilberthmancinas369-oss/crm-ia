@@ -1,13 +1,15 @@
-// import { api } from './api'
+import { api } from './api'
 
-export async function enviarInvitacion({ email, grupoId, rol }) {
-  // TODO: implementar en HU-2
+export async function enviarInvitacion({ email, grupoId, rolId }) {
+  const { data } = await api.post(`/grupos/${grupoId}/invitar`, { email, role_id: rolId })
+  return data
 }
 
 export async function validarInvitacion(token) {
-  // TODO: implementar en HU-3
+  // TODO: implementar en HU-3 (falta endpoint en el backend)
 }
 
-export async function aceptarInvitacion(token, datosCuenta) {
-  // TODO: implementar en HU-3
+export async function aceptarInvitacion(token) {
+  const { data } = await api.post('/invitaciones/aceptar', { token })
+  return data
 }
