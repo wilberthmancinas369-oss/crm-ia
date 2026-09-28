@@ -14,9 +14,13 @@ app.use(express.json());
 import contactosRoutes from './routes/contactos.routes.js';
 import oportunidadesRoutes from './routes/oportunidades.routes.js'
 import interaccionesRouter from './routes/interacciones.routes.js';
+import gruposRoutes from './routes/grupos.routes.js';
+import invitacionesRoutes from './routes/invitaciones.routes.js';
 app.use('/api/contactos', contactosRoutes);
 app.use('/api/oportunidades', oportunidadesRoutes);
 app.use('/api/interacciones', interaccionesRouter);
+app.use('/api/grupos', gruposRoutes);
+app.use('/api/invitaciones', invitacionesRoutes);
 
 // Test Route
 app.get('/', (req, res) => {

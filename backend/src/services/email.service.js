@@ -1,40 +1,44 @@
-const { Resend } = require('resend');
+import { Resend } from 'resend';
 
 /**
  * Servicio de correo electrónico utilizando Resend
  * Elegido por su SDK simple y generoso plan gratuito.
  */
-const resend = new Resend(process.env.RESEND_API_KEY);
+// Se crea al primer envío: los imports de ESM se evalúan antes del dotenv.config() de app.js,
+// y new Resend() lanza error sin API key, lo que tumbaría todo el servidor al arrancar
+let resend;
+const getResend = () => (resend ??= new Resend(process.env.RESEND_API_KEY));
 
-const emailService = {
+export const emailService = {
   /**
-   * Envia un correo electrónico de invitación transaccional.
-   * @param {string} to - Recipiente del correo electrónico.
+   * Envía un correo electrónico de invitación transaccional.
+   * @param {string} to - Destinatario del correo electrónico.
    * @param {string} token - Token de invitación para generar el enlace.
    * @param {string} groupName - Nombre del grupo al que se está invitando.
    * @param {string} roleName - Nombre del rol asignado al invitado.
    */
   async sendInvitation(to, token, groupName, roleName) {
-    const invitationLink = `${process.env.FRONTEND_URL}/invitacion/${token}`;
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+    // Debe coincidir con la ruta pública /invitacion/:token de frontend/src/routes/AppRoutes.jsx
+    const invitationLink = `${frontendUrl}/invitacion/${token}`;
 
     try {
-      const data = await resend.emails.send({
+      const { data, error } = await getResend().emails.send({
         from: process.env.RESEND_EMAIL_FROM || 'onboarding@resend.dev',
         to: [to],
         subject: `Invitación para unirte a ${groupName}`,
         html: this.getInvitationTemplate(invitationLink, groupName, roleName),
       });
 
+      // El SDK de Resend devuelve los errores en `error` en lugar de lanzarlos
+      if (error) throw new Error(error.message);
+
       return { success: true, data };
     } catch (error) {
-      console.error('Resend Email Error:', error);
+      console.error('Error de Resend:', error);
       return { success: false, error: error.message };
     }
   },
-
-  /**
-   * HTML Template for the invitation email.
-   */
 
   /**
    * Genera el contenido HTML del correo electrónico de invitación.
@@ -59,5 +63,3 @@ const emailService = {
     `;
   }
 };
-
-module.exports = emailService;

@@ -1,6 +1,6 @@
 # Migración de Base de Datos - HU-2: Grupos y Roles
 
-Este repositorio contiene la definición del modelo de datos para la gestión de grupos y roles en el CRM multi-tenant.
+Esta carpeta contiene la definición del modelo de datos para la gestión de grupos y roles en el CRM multi-tenant.
 
 ## Descripción del Modelo
 Se ha implementado una arquitectura de aislamiento por empresa utilizando una columna `company_id` en todas las tablas principales y políticas de **Row Level Security (RLS)** de Supabase para asegurar que ninguna empresa pueda acceder a los datos de otra.
@@ -21,14 +21,17 @@ Existen dos formas de aplicar estos cambios en tu instancia de Supabase:
 Es la forma más rápida si no tienes el CLI configurado:
 1. Accede al **SQL Editor** en tu panel de Supabase.
 2. Crea un **New Query**.
-3. Copia y pega el contenido completo del archivo `migration_hu2_groups_roles.sql`.
+3. Copia y pega el contenido completo de `migrations/hu2_grupos_roles.sql`.
 4. Haz clic en **Run**.
+5. Repite con `migrations/hu2_invitaciones.sql` (depende de las tablas anteriores).
 
 ### Opción 2: Mediante Supabase CLI (Línea de comandos)
 Si estás trabajando en un entorno de desarrollo local con el CLI instalado:
 ```bash
 # Ejecutar la migración directamente contra la base de datos remota
-supabase db execute -f migration_hu2_groups_roles.sql
+supabase db execute -f backend/db/migrations/hu2_grupos_roles.sql
+supabase db execute -f backend/db/migrations/hu2_invitaciones.sql
+```
 
 ## Importante
 
@@ -42,4 +45,4 @@ Todas las tablas tienen activado RLS. Para que un usuario pueda ver o modificar 
 Las políticas de escritura están restringidas a usuarios que tengan un rol con `level = 2` en la tabla `user_group_role`.
 
 ## Documentación Adicional
-Para más detalles sobre el diseño y el diagrama entidad-relación, consulta el archivo `DESIGN.md`.
+Para más detalles sobre el diseño y el diagrama entidad-relación, consulta [`docs/hu2/DISENO.md`](../../docs/hu2/DISENO.md).
