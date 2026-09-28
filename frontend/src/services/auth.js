@@ -6,12 +6,15 @@ export async function login(email, password) {
 }
 
 export async function logout() {
-  // TODO: implementar logout
+  const { error } = await supabase.auth.signOut()
+  if (error) throw error
 }
 
+// Supabase guarda la sesión en localStorage, así que sobrevive a recargas de página
 export async function getSession() {
-  // TODO: implementar lectura de sesión (usada por ProtectedRoute)
-  return null
+  const { data, error } = await supabase.auth.getSession()
+  if (error) throw error
+  return data.session
 }
 
 // Crea al administrador en Supabase Auth. La empresa, su perfil, roles y grupo inicial
