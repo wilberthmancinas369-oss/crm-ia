@@ -1,132 +1,136 @@
-import React, { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useForm } from 'react-hook-form';
 import { enviarInvitacion } from '../services/invitaciones';
 import { listarGrupos } from '../services/grupos';
+import { listarRolesInvitables } from '../services/roles';
 import ErrorMessage from '../components/ErrorMessage';
 
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+// Mismas clases de input que en Contactos y RegistroEmpresa
+const claseInput = (conError) =>
+  `w-full border rounded-md p-2 text-sm focus:outline-none focus:ring-2 ${
+    conError ? 'border-red-500 focus:ring-red-200' : 'border-gray-300 focus:ring-blue-500'
+  }`;
+
+// El backend responde { error } o, si falla express-validator, { errors: [{ msg }] }
+const mensajeDelServidor = (error, porDefecto) =>
+  error.response?.data?.error || error.response?.data?.errors?.[0]?.msg || porDefecto;
+
 export default function InvitarUsuario() {
-  const [email, setEmail] = useState('');
-  const [groupId, setGroupId] = useState('');
-  const [rol, setRol] = useState('Agente');
   const [groups, setGroups] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [roles, setRoles] = useState([]);
   const [message, setMessage] = useState({ type: '', text: '' });
 
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors, isSubmitting }
+  } = useForm({ defaultValues: { email: '', grupoId: '', rolId: '' } });
+
   useEffect(() => {
-    async function fetchGroups() {
+    async function cargarOpciones() {
       try {
-        const data = await listarGrupos();
-        setGroups(data);
+        const [grupos, rolesInvitables] = await Promise.all([listarGrupos(), listarRolesInvitables()]);
+        setGroups(grupos);
+        setRoles(rolesInvitables);
       } catch (error) {
-        console.error('Error cargando grupos:', error);
-        setMessage({ type: 'error', text: 'No se pudieron cargar los grupos.' });
+        console.error('Error cargando grupos y roles:', error);
+        setMessage({ type: 'error', text: mensajeDelServidor(error, 'No se pudieron cargar los grupos y roles.') });
       }
     }
-    fetchGroups();
+    cargarOpciones();
   }, []);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
+  const onSubmit = async ({ email, grupoId, rolId }) => {
     setMessage({ type: '', text: '' });
-
     try {
-      await enviarInvitacion({ email, groupId, rol });
+      await enviarInvitacion({ email: email.trim(), grupoId, rolId });
       setMessage({ type: 'success', text: `Invitación enviada con éxito a ${email}` });
-      setEmail('');
-      setGroupId('');
+      reset();
     } catch (error) {
       console.error('Error enviando invitación:', error);
-      setMessage({ 
-        type: 'error', 
-        text: error.response?.data?.error || 'Hubo un problema al enviar la invitación.' 
-      });
-    } finally {
-      setLoading(false);
+      setMessage({ type: 'error', text: mensajeDelServidor(error, 'Hubo un problema al enviar la invitación.') });
     }
   };
 
   return (
-    <div className="page-container">
-      <h1>Invitar usuario</h1>
-      
-      <div className="card">
-        <form onSubmit={handleSubmit} className="form-grid">
-          <div className="form-group">
-            <label htmlFor="email">Correo Electrónico</label>
+    <div className="p-6 max-w-2xl mx-auto space-y-6">
+      <div className="border-b pb-4 border-gray-200">
+        <h1 className="text-2xl font-bold text-gray-800">Invitar usuario</h1>
+        <p className="text-sm text-gray-500 mt-1">
+          El invitado recibirá un correo con un enlace válido por 7 días.
+        </p>
+      </div>
+
+      <section className="bg-white p-5 rounded-lg shadow-sm border border-gray-200">
+        <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-4">
+          <div>
+            <label htmlFor="email" className="block text-sm text-gray-600 mb-1">Correo electrónico *</label>
             <input
               id="email"
               type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
               placeholder="ejemplo@correo.com"
-              required
+              className={claseInput(errors.email)}
+              {...register('email', {
+                required: 'El correo es obligatorio',
+                pattern: { value: EMAIL_REGEX, message: 'Ingresa un correo válido' }
+              })}
             />
+            <ErrorMessage>{errors.email?.message}</ErrorMessage>
           </div>
 
-          <div className="form-group">
-            <label htmlFor="group">Grupo</label>
-            <select 
-              id="group" 
-              value={groupId} 
-              onChange={(e) => setGroupId(e.target.value)} 
-              required
+          <div>
+            <label htmlFor="grupoId" className="block text-sm text-gray-600 mb-1">Grupo *</label>
+            <select
+              id="grupoId"
+              className={claseInput(errors.grupoId)}
+              {...register('grupoId', { required: 'Selecciona un grupo' })}
             >
               <option value="">Selecciona un grupo</option>
-              {groups.map(group => (
-                <option key={group.id} value={group.id}>
-                  {group.name}
-                </option>
+              {groups.map((group) => (
+                <option key={group.id} value={group.id}>{group.name}</option>
               ))}
             </select>
+            <ErrorMessage>{errors.grupoId?.message}</ErrorMessage>
           </div>
 
-          <div className="form-group">
-            <label htmlFor="rol">Rol</label>
-            <select 
-              id="rol" 
-              value={rol} 
-              onChange={(e) => setRol(e.target.value)} 
-              required
+          <div>
+            <label htmlFor="rolId" className="block text-sm text-gray-600 mb-1">Rol *</label>
+            <select
+              id="rolId"
+              className={claseInput(errors.rolId)}
+              {...register('rolId', { required: 'Selecciona un rol' })}
             >
-              <option value="Agente">Agente</option>
-              <option value="Jefe de Área">Jefe de Área</option>
+              <option value="">Selecciona un rol</option>
+              {roles.map((rol) => (
+                <option key={rol.id} value={rol.id}>{rol.name}</option>
+              ))}
             </select>
+            <ErrorMessage>{errors.rolId?.message}</ErrorMessage>
           </div>
 
-          <div className="form-actions">
-            <button type="submit" disabled={loading}>
-              {loading ? 'Enviando...' : 'Enviar Invitación'}
+          <div className="flex items-center gap-4 pt-2">
+            <button type="submit" disabled={isSubmitting} className="btn disabled:opacity-60">
+              {isSubmitting ? 'Enviando...' : 'Enviar invitación'}
             </button>
-            <Link to="/app/grupos" className="btn-secondary">Volver a Grupos</Link>
+            <Link to="/app/grupos" className="text-sm text-gray-600">Volver a Grupos</Link>
           </div>
         </form>
 
         {message.text && (
-          <div className={`alert ${message.type === 'success' ? 'alert-success' : 'alert-error'}`}>
+          <div
+            role="alert"
+            className={`mt-4 p-3 rounded-md text-sm ${
+              message.type === 'success' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+            }`}
+          >
             {message.text}
           </div>
         )}
-      </div>
-
-      <style jsx>{`
-        .page-container { padding: 2rem; max-width: 800px; margin: 0 auto; }
-        .card { background: white; padding: 2rem; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-        .form-grid { display: grid; gap: 1.5rem; }
-        .form-group { display: flex; flex-direction: column; gap: 0.5rem; }
-        .form-group label { font-weight: 600; color: #333; }
-        .form-group input, .form-group select { 
-          padding: 0.75rem; 
-          border: 1px solid #ccc; 
-          border-radius: 4px;
-          font-size: 1rem;
-        }
-        .form-actions { display: flex; gap: 1rem; margin-top: 1rem; }
-        .btn-secondary { text-decoration: none; color: #666; display: flex; align-items: center; }
-        .alert { margin-top: 1.5rem; padding: 1rem; border-radius: 4px; font-weight: 500; }
-        .alert-success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
-        .alert-error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
-      `}</style>
+      </section>
     </div>
   );
 }
