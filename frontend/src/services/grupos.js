@@ -1,7 +1,8 @@
 import { api } from './api'
 
 export async function listarGrupos() {
-  // TODO: implementar en HU-2 (falta endpoint GET /api/grupos en el backend)
+  const { data } = await api.get('/grupos')
+  return data
 }
 
 export async function crearGrupo(datos) {

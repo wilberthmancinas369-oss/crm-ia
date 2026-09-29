@@ -3,7 +3,7 @@ import { body } from 'express-validator';
 import { validarCampos } from '../middlewares/validarCampos.js';
 import { autenticar } from '../middlewares/autenticar.js';
 import { autorizarRol } from '../middlewares/autorizarRol.js';
-import { createGrupo } from '../controllers/grupos.controller.js';
+import { createGrupo, listGrupos } from '../controllers/grupos.controller.js';
 import { invitarUsuario } from '../controllers/invitaciones.controller.js';
 
 const router = Router();
@@ -18,6 +18,9 @@ export const validacionesInvitacion = [
   body('email').isEmail().withMessage('Debe proporcionar un email válido'),
   body('role_id').notEmpty().withMessage('El rol es obligatorio'),
 ];
+
+// Cualquier miembro de la empresa puede ver sus grupos
+router.get('/', [autenticar, autorizarRol(0)], listGrupos);
 
 // MinLevel 1 = Jefe de Área, MinLevel 2 = Administrador.
 // Requerimiento: "Administrador de Empresa o Jefe de Área" -> minLevel: 1

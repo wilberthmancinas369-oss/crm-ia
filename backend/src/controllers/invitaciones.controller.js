@@ -1,6 +1,7 @@
 import crypto from 'crypto';
 import supabase from '../config/supabase.js';
 import { emailService } from '../services/email.service.js';
+import { NIVEL_ADMIN } from './roles.controller.js';
 
 export const aceptarInvitacion = async (req, res) => {
   try {
@@ -79,13 +80,17 @@ export const invitarUsuario = async (req, res) => {
 
     const { data: role, error: roleErr } = await supabase
       .from('roles')
-      .select('name')
+      .select('name, level')
       .eq('id', role_id)
       .eq('company_id', company_id)
       .single();
 
     if (roleErr || !role) {
       return res.status(404).json({ error: 'Rol no encontrado o no pertenece a tu empresa' });
+    }
+
+    if (role.level >= NIVEL_ADMIN) {
+      return res.status(403).json({ error: 'Solo se puede invitar con el rol de Agente o Jefe de Área' });
     }
 
     // Revisa si ya existe una invitación pendiente para el mismo correo y empresa
