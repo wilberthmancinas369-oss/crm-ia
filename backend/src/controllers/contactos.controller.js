@@ -2,7 +2,7 @@ import { contactosService } from '../services/contactos.service.js';
 
 export const getContactos = async (req, res) => {
   try {
-    const contactos = await contactosService.getAll();
+    const contactos = await contactosService.getAll(req.company_id);
     res.json(contactos);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -11,7 +11,7 @@ export const getContactos = async (req, res) => {
 
 export const getContactoById = async (req, res) => {
   try {
-    const contacto = await contactosService.getById(req.params.id);
+    const contacto = await contactosService.getById(req.params.id, req.company_id);
     if (!contacto) {
       return res.status(404).json({ message: 'Contacto no encontrado' });
     }
@@ -23,7 +23,7 @@ export const getContactoById = async (req, res) => {
 
 export const createContacto = async (req, res) => {
   try {
-    const nuevoContacto = await contactosService.create(req.body);
+    const nuevoContacto = await contactosService.create(req.body, req.company_id);
     res.status(201).json(nuevoContacto);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -32,7 +32,7 @@ export const createContacto = async (req, res) => {
 
 export const updateContacto = async (req, res) => {
   try {
-    const actualizado = await contactosService.update(req.params.id, req.body);
+    const actualizado = await contactosService.update(req.params.id, req.body, req.company_id);
     res.json(actualizado);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -41,7 +41,7 @@ export const updateContacto = async (req, res) => {
 
 export const deleteContacto = async (req, res) => {
   try {
-    await contactosService.delete(req.params.id);
+    await contactosService.delete(req.params.id, req.company_id);
     res.json({ message: 'Contacto eliminado correctamente' });
   } catch (error) {
     res.status(500).json({ error: error.message });

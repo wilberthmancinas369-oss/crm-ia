@@ -5,7 +5,9 @@ export async function listarInteracciones({ contactoId, oportunidadId } = {}) {
     const { data } = await api.get(`/interacciones/contacto/${contactoId}`);
     return data;
   }
-  const { data } = await api.get('/interacciones');
+  const { data } = await api.get('/interacciones', {
+    params: oportunidadId ? { oportunidad_id: oportunidadId } : undefined
+  });
   return data;
 }
 

@@ -17,12 +17,14 @@ import interaccionesRouter from './routes/interacciones.routes.js';
 import gruposRoutes from './routes/grupos.routes.js';
 import invitacionesRoutes from './routes/invitaciones.routes.js';
 import rolesRoutes from './routes/roles.routes.js';
+import authRoutes from './routes/auth.routes.js';
 app.use('/api/contactos', contactosRoutes);
 app.use('/api/oportunidades', oportunidadesRoutes);
 app.use('/api/interacciones', interaccionesRouter);
 app.use('/api/grupos', gruposRoutes);
 app.use('/api/invitaciones', invitacionesRoutes);
 app.use('/api/roles', rolesRoutes);
+app.use('/api/auth', authRoutes);
 
 // Test Route
 app.get('/', (req, res) => {

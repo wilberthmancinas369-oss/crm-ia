@@ -1,8 +1,17 @@
 // Autenticación con Supabase Auth.
 import { supabase } from './supabase'
+import { api } from './api'
 
 export async function login(email, password) {
-  // TODO: implementar login
+  const { data, error } = await supabase.auth.signInWithPassword({ email: email.trim(), password })
+  if (error) throw error
+  return data // { user, session }
+}
+
+// Empresa, rol, grupos y permisos de la cuenta en sesión (GET /api/auth/me)
+export async function obtenerPerfil() {
+  const { data } = await api.get('/auth/me')
+  return data
 }
 
 export async function logout() {
