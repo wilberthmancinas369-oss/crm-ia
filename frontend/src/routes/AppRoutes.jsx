@@ -2,6 +2,7 @@ import { Navigate, Route, Routes } from 'react-router-dom'
 import AuthLayout from '../components/layout/AuthLayout'
 import DashboardLayout from '../components/layout/DashboardLayout'
 import ProtectedRoute from './ProtectedRoute'
+import RequierePermiso from './RequierePermiso'
 
 import Landing from '../pages/Landing'
 import Login from '../pages/Login'
@@ -29,10 +30,16 @@ export default function AppRoutes() {
         <Route element={<DashboardLayout />}>
           <Route index element={<Navigate to="contactos" replace />} />
           <Route path="bienvenida" element={<Bienvenida />} />
-          <Route path="contactos" element={<Contactos />} />
-          <Route path="oportunidades" element={<Oportunidades />} />
-          <Route path="grupos" element={<Grupos />} />
-          <Route path="grupos/invitar" element={<InvitarUsuario />} />
+          <Route element={<RequierePermiso permiso="gestionarCRM" />}>
+            <Route path="contactos" element={<Contactos />} />
+            <Route path="oportunidades" element={<Oportunidades />} />
+          </Route>
+          <Route element={<RequierePermiso permiso="crearGrupos" />}>
+            <Route path="grupos" element={<Grupos />} />
+          </Route>
+          <Route element={<RequierePermiso permiso="invitarUsuarios" />}>
+            <Route path="grupos/invitar" element={<InvitarUsuario />} />
+          </Route>
         </Route>
       </Route>
 

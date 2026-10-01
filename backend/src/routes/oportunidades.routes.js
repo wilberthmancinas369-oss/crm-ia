@@ -1,6 +1,9 @@
 import { Router } from 'express';
 import { body } from 'express-validator';
 import { validarCampos } from '../middlewares/validarCampos.js';
+import { autenticar } from '../middlewares/autenticar.js';
+import { autorizarRol } from '../middlewares/autorizarRol.js';
+import { PERMISOS } from '../config/permisos.js';
 import {
   getOportunidades,
   getOportunidadById,
@@ -11,6 +14,9 @@ import {
 
 const router = Router();
 
+// Todas las rutas requieren sesión; autorizarRol deja la empresa del usuario en req.company_id
+router.use(autenticar, autorizarRol(PERMISOS.gestionarCRM));
+
 // Rutas de lectura
 router.get('/', getOportunidades);
 router.get('/:id', getOportunidadById);
@@ -19,7 +25,7 @@ router.get('/:id', getOportunidadById);
 const validacionesBase = [
   body('nombre_oportunidad').optional().notEmpty().withMessage('El nombre de la oportunidad no puede estar vacío'),
   body('contacto_id').optional().isUUID().withMessage('El contacto_id debe ser un UUID válido'),
-  body('valor_estimado').optional().isNumeric().withMessage('El valor estimado debe ser un número'),
+  body('valor_estimado').optional({ values: 'falsy' }).isNumeric().withMessage('El valor estimado debe ser un número'),
   body('etapa').optional().isString().withMessage('La etapa debe ser texto'),
   body('probabilidad').optional().isInt({ min: 0, max: 100 }).withMessage('La probabilidad debe ser un entero entre 0 y 100'),
 ];

@@ -5,13 +5,13 @@ import AppRoutes from './routes/AppRoutes'
 import './styles/variables.css'
 import './styles/global.css'
 import './index.css'
-import { CRMProvider } from './context/CRMContext'
+import { AuthProvider } from './context/AuthContext'
 createRoot(document.getElementById('root')).render(
   <StrictMode>
-    <CRMProvider>
+    <AuthProvider>
       <BrowserRouter>
         <AppRoutes />
       </BrowserRouter>
-    </CRMProvider>
+    </AuthProvider>
   </StrictMode>,
 )

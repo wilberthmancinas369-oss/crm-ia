@@ -3,6 +3,7 @@ import { body } from 'express-validator';
 import { validarCampos } from '../middlewares/validarCampos.js';
 import { autenticar } from '../middlewares/autenticar.js';
 import { autorizarRol } from '../middlewares/autorizarRol.js';
+import { PERMISOS } from '../config/permisos.js';
 import { createGrupo, listGrupos } from '../controllers/grupos.controller.js';
 import { invitarUsuario } from '../controllers/invitaciones.controller.js';
 
@@ -20,19 +21,17 @@ export const validacionesInvitacion = [
 ];
 
 // Cualquier miembro de la empresa puede ver sus grupos
-router.get('/', [autenticar, autorizarRol(0)], listGrupos);
+router.get('/', [autenticar, autorizarRol(PERMISOS.verGrupos)], listGrupos);
 
-// MinLevel 1 = Jefe de Área, MinLevel 2 = Administrador.
-// Requerimiento: "Administrador de Empresa o Jefe de Área" -> minLevel: 1
 router.post(
   '/',
-  [autenticar, autorizarRol(1), ...validacionesGrupo, validarCampos],
+  [autenticar, autorizarRol(PERMISOS.crearGrupos), ...validacionesGrupo, validarCampos],
   createGrupo
 );
 
 router.post(
   '/:id/invitar',
-  [autenticar, autorizarRol(1), ...validacionesInvitacion, validarCampos],
+  [autenticar, autorizarRol(PERMISOS.invitarUsuarios), ...validacionesInvitacion, validarCampos],
   invitarUsuario
 );
 

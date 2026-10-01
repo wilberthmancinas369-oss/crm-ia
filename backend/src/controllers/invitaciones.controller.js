@@ -1,7 +1,7 @@
 import crypto from 'crypto';
 import supabase from '../config/supabase.js';
 import { emailService } from '../services/email.service.js';
-import { NIVEL_ADMIN } from './roles.controller.js';
+import { NIVELES } from '../config/permisos.js';
 
 export const aceptarInvitacion = async (req, res) => {
   try {
@@ -89,7 +89,7 @@ export const invitarUsuario = async (req, res) => {
       return res.status(404).json({ error: 'Rol no encontrado o no pertenece a tu empresa' });
     }
 
-    if (role.level >= NIVEL_ADMIN) {
+    if (role.level >= NIVELES.ADMINISTRADOR) {
       return res.status(403).json({ error: 'Solo se puede invitar con el rol de Agente o Jefe de Área' });
     }
 

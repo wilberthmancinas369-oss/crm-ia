@@ -1,7 +1,7 @@
 import supabase from '../config/supabase.js';
+import { NIVELES } from '../config/permisos.js';
 
-// Nivel del rol Administrador; solo se puede invitar como Agente (0) o Jefe de Área (1)
-export const NIVEL_ADMIN = 2;
+// Solo se puede invitar como Agente o Jefe de Área, nunca como Administrador
 
 // Lista los roles de la empresa que se pueden asignar al invitar a un usuario
 export const listRolesInvitables = async (req, res) => {
@@ -10,7 +10,7 @@ export const listRolesInvitables = async (req, res) => {
       .from('roles')
       .select('id, name, level')
       .eq('company_id', req.company_id)
-      .lt('level', NIVEL_ADMIN)
+      .lt('level', NIVELES.ADMINISTRADOR)
       .order('level');
 
     if (error) throw error;
