@@ -1,4 +1,4 @@
-// Prueba manual de integración del flujo HU-2: invitar -> aceptar -> rol asignado.
+// Prueba manual de integración del flujo HU-2/HU-3: invitar -> aceptar (crea la cuenta) -> rol asignado.
 // Usa la base de datos real del .env y envía un correo real con Resend.
 // Uso: reemplazar los IDs de abajo y ejecutar `node scripts/probarFlujoInvitacion.js` desde backend/
 import 'dotenv/config';
@@ -16,8 +16,7 @@ async function runFlowTest() {
       email: `test-${Date.now()}@example.com`,
       role_id: 'REEMPLAZAR_CON_ID_DE_ROL_REAL',
       groupId: 'REEMPLAZAR_CON_ID_DE_GRUPO_REAL',
-      company_id: 'REEMPLAZAR_CON_ID_DE_EMPRESA_REAL',
-      userId: 'REEMPLAZAR_CON_ID_DE_USUARIO_REAL'
+      company_id: 'REEMPLAZAR_CON_ID_DE_EMPRESA_REAL'
     };
 
     const reqInvite = {
@@ -31,15 +30,18 @@ async function runFlowTest() {
 
     const { data: invite } = await supabase.from('invitations').select('token').eq('email', testData.email).single();
 
-    const reqAccept = { body: { token: invite.token }, user: { id: testData.userId } };
+    const reqAccept = { params: { token: invite.token }, body: { nombre: 'Usuario de Prueba', password: 'prueba1234' } };
     const resAccept = mockRes();
     await aceptarInvitacion(reqAccept, resAccept);
-    if (resAccept.statusCode !== 200) throw new Error('Error en aceptarInvitacion: ' + JSON.stringify(resAccept.data));
+    if (resAccept.statusCode !== 201) throw new Error('Error en aceptarInvitacion: ' + JSON.stringify(resAccept.data));
+
+    // La cuenta la crea aceptarInvitacion; su id es el del perfil con ese correo
+    const { data: perfil } = await supabase.from('profiles').select('id').eq('email', testData.email).single();
 
     const { data: assignment } = await supabase
       .from('user_group_role')
       .select('*')
-      .eq('user_id', testData.userId)
+      .eq('user_id', perfil.id)
       .eq('group_id', testData.groupId)
       .single();
 

@@ -5,11 +5,14 @@ export async function enviarInvitacion({ email, grupoId, rolId }) {
   return data
 }
 
+// Datos de la invitación (correo, empresa, grupo, rol). Pública: el invitado aún no tiene cuenta.
 export async function validarInvitacion(token) {
-  // TODO: implementar en HU-3 (falta endpoint en el backend)
+  const { data } = await api.get(`/invitaciones/${token}`)
+  return data
 }
 
-export async function aceptarInvitacion(token) {
-  const { data } = await api.post('/invitaciones/aceptar', { token })
+// Crea la cuenta del invitado y lo asocia a su grupo y rol. Después hay que iniciar sesión.
+export async function aceptarInvitacion(token, { nombre, password }) {
+  const { data } = await api.post(`/invitaciones/${token}/aceptar`, { nombre, password })
   return data
 }
