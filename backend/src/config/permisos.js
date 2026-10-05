@@ -10,6 +10,7 @@ export const NIVELES = {
 export const PERMISOS = {
   gestionarCRM: NIVELES.AGENTE,          // contactos, oportunidades e interacciones
   verGrupos: NIVELES.AGENTE,             // listar los grupos de la empresa
+  verMiembros: NIVELES.JEFE_AREA,        // miembros e invitaciones pendientes de cada grupo
   invitarUsuarios: NIVELES.JEFE_AREA,
   crearGrupos: NIVELES.JEFE_AREA         // HU-2: "Administrador de Empresa o Jefe de Área"
 };

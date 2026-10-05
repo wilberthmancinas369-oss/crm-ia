@@ -33,7 +33,7 @@ const ejecutar = async (middleware, req) => {
 describe('permisosDelNivel', () => {
   test('un Agente gestiona el CRM pero no invita ni crea grupos', () => {
     assert.deepEqual(permisosDelNivel(NIVELES.AGENTE), {
-      gestionarCRM: true, verGrupos: true, invitarUsuarios: false, crearGrupos: false
+      gestionarCRM: true, verGrupos: true, verMiembros: false, invitarUsuarios: false, crearGrupos: false
     });
   });
 
