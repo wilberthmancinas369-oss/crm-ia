@@ -16,7 +16,7 @@ export const validacionesGrupo = [
 ];
 
 export const validacionesInvitacion = [
-  body('email').isEmail().withMessage('Debe proporcionar un email válido'),
+  body('email').trim().toLowerCase().isEmail().withMessage('Debe proporcionar un email válido'),
   body('role_id').notEmpty().withMessage('El rol es obligatorio'),
 ];
 
