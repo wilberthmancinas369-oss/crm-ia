@@ -7,7 +7,7 @@ process.env.SUPABASE_URL = 'http://localhost:54321';
 process.env.SUPABASE_SERVICE_ROLE_KEY = 'clave-de-prueba';
 
 const { default: supabase } = await import('../src/config/supabase.js');
-const { createGrupo } = await import('../src/controllers/grupos.controller.js');
+const { createGrupo, listGruposConMiembros } = await import('../src/controllers/grupos.controller.js');
 const { validacionesGrupo } = await import('../src/routes/grupos.routes.js');
 
 // Simula la cadena de consultas de Supabase: cada método devuelve la misma consulta
@@ -75,5 +75,31 @@ describe('POST /api/grupos — validaciones', () => {
 
   test('acepta un nombre válido', async () => {
     assert.deepEqual(await validar({ name: 'Ventas Norte' }), []);
+  });
+});
+
+describe('GET /api/grupos/miembros', () => {
+  test('devuelve miembros ordenados por rol y solo invitaciones pendientes vigentes', async () => {
+    const fila = {
+      id: 'g1', name: 'Ventas', description: null, created_at: '2026-10-01',
+      user_group_role: [
+        { assigned_at: '2026-10-02', profiles: { id: 'u2', full_name: 'Beto', email: 'beto@x.com' }, roles: { name: 'Agente', level: 0 } },
+        { assigned_at: '2026-10-01', profiles: { id: 'u1', full_name: 'Ana', email: 'ana@x.com' }, roles: { name: 'Administrador', level: 2 } }
+      ],
+      invitations: [
+        { id: 'i1', email: 'nueva@x.com', status: 'pendiente', expires_at: '2999-01-01T00:00:00Z', roles: { name: 'Agente' } },
+        { id: 'i2', email: 'vieja@x.com', status: 'pendiente', expires_at: '2020-01-01T00:00:00Z', roles: { name: 'Agente' } }
+      ]
+    };
+    const consulta = { select: () => consulta, eq: () => consulta, order: async () => ({ data: [fila], error: null }) };
+    supabase.from = () => consulta;
+
+    const res = mockRes();
+    await listGruposConMiembros({ company_id: 'company-1' }, res);
+
+    const [grupo] = res.body;
+    assert.equal(grupo.nombre, 'Ventas');
+    assert.deepEqual(grupo.miembros.map((m) => m.nombre), ['Ana', 'Beto']);
+    assert.deepEqual(grupo.invitacionesPendientes.map((i) => i.email), ['nueva@x.com']);
   });
 });

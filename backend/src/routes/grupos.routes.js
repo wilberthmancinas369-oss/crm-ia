@@ -4,7 +4,7 @@ import { validarCampos } from '../middlewares/validarCampos.js';
 import { autenticar } from '../middlewares/autenticar.js';
 import { autorizarRol } from '../middlewares/autorizarRol.js';
 import { PERMISOS } from '../config/permisos.js';
-import { createGrupo, listGrupos } from '../controllers/grupos.controller.js';
+import { createGrupo, listGrupos, listGruposConMiembros } from '../controllers/grupos.controller.js';
 import { invitarUsuario } from '../controllers/invitaciones.controller.js';
 
 const router = Router();
@@ -22,6 +22,9 @@ export const validacionesInvitacion = [
 
 // Cualquier miembro de la empresa puede ver sus grupos
 router.get('/', [autenticar, autorizarRol(PERMISOS.verGrupos)], listGrupos);
+
+// Miembros e invitaciones pendientes de cada grupo (pantalla Grupos)
+router.get('/miembros', [autenticar, autorizarRol(PERMISOS.verMiembros)], listGruposConMiembros);
 
 router.post(
   '/',
