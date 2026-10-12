@@ -34,7 +34,7 @@ export default function AppRoutes() {
             <Route path="contactos" element={<Contactos />} />
             <Route path="oportunidades" element={<Oportunidades />} />
           </Route>
-          <Route element={<RequierePermiso permiso="crearGrupos" />}>
+          <Route element={<RequierePermiso permiso="verMiembros" />}>
             <Route path="grupos" element={<Grupos />} />
           </Route>
           <Route element={<RequierePermiso permiso="invitarUsuarios" />}>

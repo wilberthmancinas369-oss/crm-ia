@@ -2,8 +2,8 @@ import { Router } from 'express';
 import { body } from 'express-validator';
 import { validarCampos } from '../middlewares/validarCampos.js';
 import { autenticar } from '../middlewares/autenticar.js';
-import { autorizarRol } from '../middlewares/autorizarRol.js';
-import { PERMISOS } from '../config/permisos.js';
+import { autorizar } from '../middlewares/autorizarRol.js';
+import { autorizarGrupo } from '../middlewares/autorizarGrupo.js';
 import { createGrupo, listGrupos, listGruposConMiembros } from '../controllers/grupos.controller.js';
 import { invitarUsuario } from '../controllers/invitaciones.controller.js';
 
@@ -20,21 +20,23 @@ export const validacionesInvitacion = [
   body('role_id').notEmpty().withMessage('El rol es obligatorio'),
 ];
 
-// Cualquier miembro de la empresa puede ver sus grupos
-router.get('/', [autenticar, autorizarRol(PERMISOS.verGrupos)], listGrupos);
+// Cada quien ve sus grupos; el Administrador, todos
+router.get('/', [autenticar, autorizar('verGrupos')], listGrupos);
 
 // Miembros e invitaciones pendientes de cada grupo (pantalla Grupos)
-router.get('/miembros', [autenticar, autorizarRol(PERMISOS.verMiembros)], listGruposConMiembros);
+router.get('/miembros', [autenticar, autorizar('verMiembros')], listGruposConMiembros);
 
 router.post(
   '/',
-  [autenticar, autorizarRol(PERMISOS.crearGrupos), ...validacionesGrupo, validarCampos],
+  // Solo el Administrador crea grupos (HU-11)
+  [autenticar, autorizar('crearGrupos'), ...validacionesGrupo, validarCampos],
   createGrupo
 );
 
 router.post(
   '/:id/invitar',
-  [autenticar, autorizarRol(PERMISOS.invitarUsuarios), ...validacionesInvitacion, validarCampos],
+  // El Jefe de Área solo invita a los grupos que dirige; el rol se valida en el controlador
+  [autenticar, autorizar('invitarUsuarios'), autorizarGrupo('id'), ...validacionesInvitacion, validarCampos],
   invitarUsuario
 );
 

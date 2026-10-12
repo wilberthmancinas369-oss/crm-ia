@@ -1,12 +1,12 @@
 import { Link, NavLink } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 
-// `permiso` debe coincidir con backend/src/config/permisos.js
-// (Agente < Jefe de Área < Administrador; cada rol hereda los del anterior).
+// `permiso` debe coincidir con backend/src/config/permisos.js (docs/HU11-matriz-permisos.md).
+// Ocultar una opción es solo comodidad: el backend valida cada petición.
 export const NAV_ITEMS = [
   { to: '/app/contactos', label: 'Contactos', permiso: 'gestionarCRM' },
   { to: '/app/oportunidades', label: 'Oportunidades', permiso: 'gestionarCRM' },
-  { to: '/app/grupos', label: 'Grupos', permiso: 'crearGrupos' },
+  { to: '/app/grupos', label: 'Grupos', permiso: 'verMiembros' },
   { to: '/app/grupos/invitar', label: 'Invitar usuario', permiso: 'invitarUsuarios' },
 ]
 

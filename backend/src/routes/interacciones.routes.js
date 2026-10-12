@@ -2,8 +2,7 @@ import { Router } from 'express';
 import { body } from 'express-validator';
 import { validarCampos } from '../middlewares/validarCampos.js';
 import { autenticar } from '../middlewares/autenticar.js';
-import { autorizarRol } from '../middlewares/autorizarRol.js';
-import { PERMISOS } from '../config/permisos.js';
+import { autorizar } from '../middlewares/autorizarRol.js';
 import {
   getInteracciones,
   getInteraccionById,
@@ -15,8 +14,9 @@ import {
 
 const router = Router();
 
-// Todas las rutas requieren sesión; autorizarRol deja la empresa del usuario en req.company_id
-router.use(autenticar, autorizarRol(PERMISOS.gestionarCRM));
+// Todas las rutas requieren sesión; autorizar deja la empresa en req.company_id y los grupos
+// visibles en req.alcance (Agente y Jefe: sus grupos; Administrador: toda la empresa)
+router.use(autenticar, autorizar('gestionarCRM'));
 
 // Rutas de lectura
 router.get('/', getInteracciones);

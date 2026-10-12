@@ -96,16 +96,19 @@ export default function Grupos() {
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3 items-start">
-        <FormularioGrupo onCreado={cargarGrupos} />
+        {/* Crear grupos es exclusivo del Administrador (HU-11); el Jefe solo ve los grupos que dirige */}
+        {puede('crearGrupos') && <FormularioGrupo onCreado={cargarGrupos} />}
 
-        <div className="lg:col-span-2 space-y-4">
+        <div className={`space-y-4 ${puede('crearGrupos') ? 'lg:col-span-2' : 'lg:col-span-3'}`}>
           {error && (
             <p role="alert" className="p-3 rounded-md text-sm bg-red-100 text-red-800">{error}</p>
           )}
           {grupos === null ? (
             <p className="text-gray-500">Cargando grupos...</p>
           ) : grupos.length === 0 && !error ? (
-            <p className="text-gray-500">Todavía no hay grupos. Crea el primero con el formulario.</p>
+            <p className="text-gray-500">
+              {puede('crearGrupos') ? 'Todavía no hay grupos. Crea el primero con el formulario.' : 'No diriges ningún grupo.'}
+            </p>
           ) : (
             grupos.map((grupo) => <TarjetaGrupo key={grupo.id} grupo={grupo} />)
           )}

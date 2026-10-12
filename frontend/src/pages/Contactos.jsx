@@ -6,9 +6,12 @@ import {
   registrarInteraccion
 } from '../services/interacciones.js';
 import ErrorMessage from '../components/ErrorMessage.jsx';
+import SelectorGrupo from '../components/SelectorGrupo.jsx';
+import { useGruposPermitidos } from '../hooks/useGruposPermitidos.js';
 
 export default function Contactos() {
   const { contactos, agregarContacto, borrarContacto, cargando } = useCRM();
+  const gruposPermitidos = useGruposPermitidos('gestionarCRM');
 
   // Estados locales para el panel de interacciones
   const [contactoSeleccionado, setContactoSeleccionado] = useState(null);
@@ -171,6 +174,9 @@ export default function Contactos() {
                 {...registerContacto('empresa_cliente')}
               />
             </div>
+
+            {/* Campo: Grupo (solo si la cuenta puede guardar en más de un grupo) */}
+            <SelectorGrupo grupos={gruposPermitidos} register={registerContacto} error={errorsContacto.grupo_id} />
           </div>
 
           <div className="flex justify-end">
