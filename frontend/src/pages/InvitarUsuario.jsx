@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { enviarInvitacion } from '../services/invitaciones';
-import { listarGrupos } from '../services/grupos';
+import { useGruposPermitidos } from '../hooks/useGruposPermitidos';
 import { listarRolesInvitables } from '../services/roles';
 import ErrorMessage from '../components/ErrorMessage';
 
@@ -19,7 +19,8 @@ const mensajeDelServidor = (error, porDefecto) =>
   error.response?.data?.error || error.response?.data?.errors?.[0]?.msg || porDefecto;
 
 export default function InvitarUsuario() {
-  const [groups, setGroups] = useState([]);
+  // Solo los grupos donde la cuenta puede invitar (el Jefe de Área, los que dirige)
+  const groups = useGruposPermitidos('invitarUsuarios');
   const [roles, setRoles] = useState([]);
   const [message, setMessage] = useState({ type: '', text: '' });
 
@@ -27,22 +28,27 @@ export default function InvitarUsuario() {
     register,
     handleSubmit,
     reset,
+    watch,
+    setValue,
     formState: { errors, isSubmitting }
   } = useForm({ defaultValues: { email: '', grupoId: '', rolId: '' } });
 
+  // Los roles asignables dependen del grupo elegido (backend: rolMaximoAsignable)
+  const grupoId = watch('grupoId');
   useEffect(() => {
-    async function cargarOpciones() {
-      try {
-        const [grupos, rolesInvitables] = await Promise.all([listarGrupos(), listarRolesInvitables()]);
-        setGroups(grupos);
-        setRoles(rolesInvitables);
-      } catch (error) {
-        console.error('Error cargando grupos y roles:', error);
-        setMessage({ type: 'error', text: mensajeDelServidor(error, 'No se pudieron cargar los grupos y roles.') });
-      }
+    setValue('rolId', '');
+    if (!grupoId) {
+      setRoles([]);
+      return;
     }
-    cargarOpciones();
-  }, []);
+    listarRolesInvitables(grupoId)
+      .then(setRoles)
+      .catch((error) => {
+        console.error('Error cargando roles:', error);
+        setRoles([]);
+        setMessage({ type: 'error', text: mensajeDelServidor(error, 'No se pudieron cargar los roles.') });
+      });
+  }, [grupoId, setValue]);
 
   const onSubmit = async ({ email, grupoId, rolId }) => {
     setMessage({ type: '', text: '' });
@@ -91,7 +97,7 @@ export default function InvitarUsuario() {
             >
               <option value="">Selecciona un grupo</option>
               {groups.map((group) => (
-                <option key={group.id} value={group.id}>{group.name}</option>
+                <option key={group.id} value={group.id}>{group.nombre}</option>
               ))}
             </select>
             <ErrorMessage>{errors.grupoId?.message}</ErrorMessage>

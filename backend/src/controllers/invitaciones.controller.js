@@ -1,7 +1,7 @@
 import crypto from 'crypto';
 import supabase from '../config/supabase.js';
 import { emailService } from '../services/email.service.js';
-import { NIVELES } from '../config/permisos.js';
+import { rolMaximoAsignable } from '../config/permisos.js';
 
 // Busca una invitación por token con los nombres de empresa, grupo y rol.
 // Devuelve { invitacion } si se puede aceptar, o { status, error } si no.
@@ -147,8 +147,10 @@ export const invitarUsuario = async (req, res) => {
       return res.status(404).json({ error: 'Rol no encontrado o no pertenece a tu empresa' });
     }
 
-    if (role.level >= NIVELES.ADMINISTRADOR) {
-      return res.status(403).json({ error: 'Solo se puede invitar con el rol de Agente o Jefe de Área' });
+    // Sin escalada de privilegios: el Jefe de Área solo invita Agentes; nadie invita Administradores
+    const maximo = rolMaximoAsignable(req.perfil, groupId);
+    if (maximo === null || role.level > maximo) {
+      return res.status(403).json({ error: `No puedes asignar el rol ${role.name} en este grupo` });
     }
 
     // Una cuenta solo puede pertenecer a una empresa: si el correo ya tiene perfil, no se podría aceptar

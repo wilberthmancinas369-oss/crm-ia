@@ -1,16 +1,26 @@
 import supabase from '../config/supabase.js';
-import { NIVELES } from '../config/permisos.js';
+import { NIVELES, esAdministrador, rolMaximoAsignable } from '../config/permisos.js';
 
-// Solo se puede invitar como Agente o Jefe de Área, nunca como Administrador
 
-// Lista los roles de la empresa que se pueden asignar al invitar a un usuario
+// Lista los roles de la empresa que el usuario puede asignar al invitar.
+// Administrador: Agente y Jefe de Área. Jefe de Área: solo Agente (docs/HU11-matriz-permisos.md).
+// Con ?grupo_id se calcula para ese grupo.
 export const listRolesInvitables = async (req, res) => {
   try {
+    const { grupo_id } = req.query;
+    const maximo = grupo_id
+      ? rolMaximoAsignable(req.perfil, grupo_id)
+      : esAdministrador(req.perfil) ? NIVELES.JEFE_AREA : NIVELES.AGENTE;
+
+    if (maximo === null) {
+      return res.status(403).json({ error: 'No puedes invitar usuarios a este grupo' });
+    }
+
     const { data, error } = await supabase
       .from('roles')
       .select('id, name, level')
       .eq('company_id', req.company_id)
-      .lt('level', NIVELES.ADMINISTRADOR)
+      .lte('level', maximo)
       .order('level');
 
     if (error) throw error;
