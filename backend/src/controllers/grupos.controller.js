@@ -1,10 +1,11 @@
 import supabase from '../config/supabase.js';
+import { filtrarPorGrupos } from '../services/alcance.service.js';
 
 // Las validaciones de formato (nombre obligatorio, longitud) viven en grupos.routes.js
 export const createGrupo = async (req, res) => {
   try {
     const { name, description } = req.body;
-    const company_id = req.company_id; // Inyectado por el middleware autorizarRol
+    const company_id = req.company_id; // Inyectado por el middleware autorizar
 
     // Verifica si ya existe un grupo con el mismo nombre en la misma empresa
     const { data: existingGroup, error: checkError } = await supabase
@@ -39,14 +40,14 @@ export const createGrupo = async (req, res) => {
   }
 };
 
-// Lista los grupos de la empresa del usuario (para el selector de Invitar usuario)
+// Lista los grupos visibles para el usuario: los suyos, o todos si es Administrador
 export const listGrupos = async (req, res) => {
   try {
-    const { data, error } = await supabase
-      .from('groups')
-      .select('id, name, description')
-      .eq('company_id', req.company_id)
-      .order('name');
+    const { data, error } = await filtrarPorGrupos(
+      supabase.from('groups').select('id, name, description').eq('company_id', req.company_id),
+      req.alcance,
+      'id'
+    ).order('name');
 
     if (error) throw error;
     return res.json(data);
@@ -56,19 +57,23 @@ export const listGrupos = async (req, res) => {
   }
 };
 
-// Grupos de la empresa con sus miembros (nombre, correo, rol) e invitaciones pendientes
+// Grupos con sus miembros (nombre, correo, rol) e invitaciones pendientes.
+// Jefe de Área: solo los grupos que dirige. Administrador: todos.
 export const listGruposConMiembros = async (req, res) => {
   try {
-    const { data, error } = await supabase
-      .from('groups')
-      .select(`
-        id, name, description, created_at,
-        user_group_role ( assigned_at, profiles ( id, full_name, email ), roles ( name, level ) ),
-        invitations ( id, email, status, expires_at, roles ( name ) )
-      `)
-      .eq('company_id', req.company_id)
-      .eq('invitations.status', 'pendiente')
-      .order('name');
+    const { data, error } = await filtrarPorGrupos(
+      supabase
+        .from('groups')
+        .select(`
+          id, name, description, created_at,
+          user_group_role ( assigned_at, profiles ( id, full_name, email ), roles ( name, level ) ),
+          invitations ( id, email, status, expires_at, roles ( name ) )
+        `)
+        .eq('company_id', req.company_id)
+        .eq('invitations.status', 'pendiente'),
+      req.alcance,
+      'id'
+    ).order('name');
 
     if (error) throw error;
 

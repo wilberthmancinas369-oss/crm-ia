@@ -91,11 +91,11 @@ describe('GET /api/grupos/miembros', () => {
         { id: 'i2', email: 'vieja@x.com', status: 'pendiente', expires_at: '2020-01-01T00:00:00Z', roles: { name: 'Agente' } }
       ]
     };
-    const consulta = { select: () => consulta, eq: () => consulta, order: async () => ({ data: [fila], error: null }) };
+    const consulta = { select: () => consulta, eq: () => consulta, in: () => consulta, order: async () => ({ data: [fila], error: null }) };
     supabase.from = () => consulta;
 
     const res = mockRes();
-    await listGruposConMiembros({ company_id: 'company-1' }, res);
+    await listGruposConMiembros({ company_id: 'company-1', alcance: null }, res);
 
     const [grupo] = res.body;
     assert.equal(grupo.nombre, 'Ventas');
