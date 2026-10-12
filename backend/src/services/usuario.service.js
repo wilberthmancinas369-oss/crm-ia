@@ -98,12 +98,74 @@ export const usuarioService = {
   },
 
   /**
-   * Remueve a un usuario de un grupo.
+   * Remueve a un usuario de un grupo. Si es su último grupo, lo mueve a "Sin Grupo".
    * @param {string} userId - ID del usuario.
    * @param {string} groupId - ID del grupo.
    * @param {number} companyId - ID de la empresa.
    */
   async removerUsuarioDeGrupo(userId, groupId, companyId) {
+    // 1. Verificar cuántos grupos tiene el usuario en total en esta empresa
+    const { data: todasAsignaciones, error: assignError } = await supabase
+      .from('user_group_role')
+      .select('group_id')
+      .eq('user_id', userId)
+      .eq('company_id', companyId);
+
+    if (assignError) throw assignError;
+
+    // 2. Si es su único grupo, no lo borramos simplemente, lo movemos al grupo "Sin Grupo"
+    if (todasAsignaciones && todasAsignaciones.length <= 1) {
+      // Buscar o crear el grupo "Sin Grupo"
+      let { data: grupoDefault, error: gError } = await supabase
+        .from('groups')
+        .select('id')
+        .eq('name', 'Sin Grupo')
+        .eq('company_id', companyId)
+        .maybeSingle();
+
+      if (gError) throw gError;
+
+      if (!grupoDefault) {
+        const { data: newG, error: createError } = await supabase
+          .from('groups')
+          .insert([{ name: 'Sin Grupo', description: 'Grupo automático para usuarios sin asignación', company_id: companyId }])
+          .select()
+          .single();
+        if (createError) throw createError;
+        grupoDefault = newG;
+      }
+
+      // Si el usuario ya estaba en "Sin Grupo", simplemente lo borramos (aunque en este caso es su único grupo)
+      if (groupId === grupoDefault.id) {
+        const { data, error } = await supabase
+          .from('user_group_role')
+          .delete()
+          .eq('user_id', userId)
+          .eq('group_id', groupId)
+          .eq('company_id', companyId)
+          .select()
+          .single();
+        if (error) throw error;
+        return data;
+      }
+
+      // Mover al usuario al grupo "Sin Grupo" con rol de Agente (rol más bajo)
+      // Obtenemos el ID del rol Agente para esta empresa
+      const { data: rolAgente, error: rError } = await supabase
+        .from('roles')
+        .select('id')
+        .eq('name', 'Agente')
+        .eq('company_id', companyId)
+        .maybeSingle();
+      
+      if (rError) throw rError;
+      if (!rolAgente) throw new Error('No se encontró el rol Agente para esta empresa');
+
+      // Ejecutar el movimiento
+      return this.moverUsuarioDeGrupo(userId, groupId, grupoDefault.id, companyId);
+    }
+
+    // 3. Si tiene más de un grupo, lo borramos normalmente
     const { data, error } = await supabase
       .from('user_group_role')
       .delete()

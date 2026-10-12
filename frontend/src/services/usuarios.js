@@ -1,0 +1,16 @@
+import { api } from './api'
+
+export async function cambiarRolUsuario(userId, groupId, roleId) {
+  const { data } = await api.post('/usuarios/cambiar-rol', { userId, groupId, roleId })
+  return data
+}
+
+export async function moverUsuarioDeGrupo(userId, oldGroupId, newGroupId) {
+  const { data } = await api.post('/usuarios/mover-grupo', { userId, oldGroupId, newGroupId })
+  return data
+}
+
+export async function removerUsuarioDeGrupo(userId, groupId) {
+  const { data } = await api.post('/usuarios/remover-grupo', { userId, groupId })
+  return data
+}

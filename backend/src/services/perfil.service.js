@@ -30,14 +30,14 @@ export const perfilService = {
       (max, a) => (!max || a.roles.level > max.level ? a.roles : max),
       null
     );
-    const nivel = rolMasAlto ? rolMasAlto.level : null;
+    const nivel = rolMasAlto ? rolMasAlto.level : -1; // -1 para usuarios sin grupo
 
     return {
       usuario: { id: perfil.id, nombre: perfil.full_name, email: perfil.email },
       empresa: { id: perfil.companies.id, nombre: perfil.companies.name },
-      rol: rolMasAlto ? { nombre: rolMasAlto.name, nivel } : null,
+      rol: rolMasAlto ? { nombre: rolMasAlto.name, nivel } : { nombre: 'Sin Grupo', nivel: -1 },
       grupos: asignaciones.map((a) => ({ id: a.groups.id, nombre: a.groups.name, rol: a.roles.name })),
-      permisos: nivel === null ? {} : permisosDelNivel(nivel)
+      permisos: nivel === null ? {} : permisosDelNivel(nivel === -1 ? 0 : nivel)
     };
   }
 };

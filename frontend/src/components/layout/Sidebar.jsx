@@ -7,6 +7,7 @@ export const NAV_ITEMS = [
   { to: '/app/contactos', label: 'Contactos', permiso: 'gestionarCRM' },
   { to: '/app/oportunidades', label: 'Oportunidades', permiso: 'gestionarCRM' },
   { to: '/app/grupos', label: 'Grupos', permiso: 'crearGrupos' },
+  { to: '/app/usuarios', label: 'Usuarios', permiso: 'invitarUsuarios' },
   { to: '/app/grupos/invitar', label: 'Invitar usuario', permiso: 'invitarUsuarios' },
 ]
 

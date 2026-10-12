@@ -14,6 +14,13 @@ const getResend = () => (resend ??= new Resend(process.env.RESEND_API_KEY));
 // Cada proveedor recibe { to, subject, html } y lanza un Error con el motivo si falla
 const proveedores = {
   async brevo({ to, subject, html }) {
+    if (!process.env.BREVO_API_KEY) {
+      throw new Error('Falta la configuración de BREVO_API_KEY en el archivo .env');
+    }
+    if (!process.env.BREVO_SENDER_EMAIL) {
+      throw new Error('Falta la configuración de BREVO_SENDER_EMAIL en el archivo .env');
+    }
+
     const respuesta = await fetch('https://api.brevo.com/v3/smtp/email', {
       method: 'POST',
       headers: { 'api-key': process.env.BREVO_API_KEY, 'Content-Type': 'application/json' },
