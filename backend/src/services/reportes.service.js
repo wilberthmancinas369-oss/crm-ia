@@ -57,4 +57,4 @@ export const reportesService = {
   }
 };
 
-module.exports = reportesService;
+

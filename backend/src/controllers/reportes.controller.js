@@ -15,6 +15,3 @@ export const getReporteJefe = async (req, res) => {
   }
 };
 
-module.exports = {
-  getReporteJefe
-};
