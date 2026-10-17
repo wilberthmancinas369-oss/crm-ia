@@ -66,7 +66,7 @@ export const aceptarInvitacion = async (req, res) => {
     const { invitacion, status, error } = await buscarInvitacionVigente(token);
     if (!invitacion) return res.status(status).json({ error });
 
-    // 2. Crear las credenciales. El correo se toma de la invitación, nunca del body, y se
+    // 2. Crear las credenciales. El correo se toma de la invitación, nunca del body, y lo
     // marca como confirmado porque ya se comprobó al recibir el enlace en ese correo.
     const { data: creado, error: authError } = await supabase.auth.admin.createUser({
       email: invitacion.email,
@@ -223,6 +223,129 @@ export const invitarUsuario = async (req, res) => {
     });
   } catch (error) {
     console.error('Error al invitar usuario:', error);
-    return res.status(500).json({ error: 'Error interno del servidor al procesar la invitación' });
+    return res.status(500).json({ error: 'Error interno al procesar la invitación' });
+  }
+};
+
+// POST /api/invitaciones/:id/reenviar
+export const reenviarInvitacion = async (req, res) => {
+  try {
+    const inviteId = req.params.id;
+    const company_id = req.company_id;
+
+    // 1. Buscar invitación y validar empresa y estado
+    const { data: invitacion, error: fetchError } = await supabase
+      .from('invitations')
+      .select('email, groups(id, name), roles(name), token, status')
+      .eq('id', inviteId)
+      .eq('company_id', company_id)
+      .maybeSingle();
+
+    if (fetchError) throw fetchError;
+    if (!invitacion) return res.status(404).json({ error: 'Invitación no encontrada' });
+
+    // Solo reenviar si está pendiente o expirada
+    if (invitacion.status !== 'pendiente' && invitacion.status !== 'expirada') {
+      return res.status(409).json({ error: 'No se puede reenviar una invitación que ya fue aceptada o cancelada' });
+    }
+
+    // 2. Validar permisos de Jefe de Área (solo sus grupos)
+    if (req.perfil.rol.nivel < NIVELES.ADMINISTRADOR) {
+      const { data: check, error: checkError } = await supabase
+        .from('user_group_role')
+        .select('id')
+        .eq('user_id', req.user.id)
+        .eq('group_id', invitacion.groups.id)
+        .maybeSingle();
+      
+      if (checkError) throw checkError;
+      if (!check) return res.status(403).json({ error: 'Solo puedes reenviar invitaciones de tus propios grupos' });
+    }
+
+    // 3. Generar nuevo token y fecha de expiración (otros 7 días)
+    // Al cambiar el token, el enlace anterior queda automáticamente invalidado
+    const newToken = crypto.randomBytes(32).toString('hex');
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + 7);
+
+    const { error: updateError } = await supabase
+      .from('invitations')
+      .update({ 
+        token: newToken, 
+        expires_at: expiresAt.toISOString(), 
+        status: 'pendiente' // Aseguramos que vuelva a estar activa si estaba expirada
+      })
+      .eq('id', inviteId);
+
+    if (updateError) throw updateError;
+
+    // 4. Reutilizar el servicio de correo con el nuevo token
+    const emailResult = await emailService.sendInvitation(
+      invitacion.email, 
+      newToken, 
+      invitacion.groups.name, 
+      invitacion.roles.name
+    );
+
+    if (!emailResult.success) {
+      return res.status(502).json({ 
+        error: 'La invitación se actualizó pero hubo un error al enviar el correo.',
+        detail: emailResult.error 
+      });
+    }
+
+    return res.json({ message: 'Invitación reenviada exitosamente' });
+  } catch (error) {
+    console.error('Error al reenviar invitación:', error);
+    return res.status(500).json({ error: 'Error interno al reenviar la invitación' });
+  }
+};
+
+// POST /api/invitaciones/:id/cancelar
+export const cancelarInvitacion = async (req, res) => {
+  try {
+    const inviteId = req.params.id;
+    const company_id = req.company_id;
+
+    // 1. Buscar invitación y validar empresa y estado
+    const { data: invitacion, error: fetchError } = await supabase
+      .from('invitations')
+      .select('status, groups(id)')
+      .eq('id', inviteId)
+      .eq('company_id', company_id)
+      .maybeSingle();
+
+    if (fetchError) throw fetchError;
+    if (!invitacion) return res.status(404).json({ error: 'Invitación no encontrada' });
+
+    if (invitacion.status !== 'pendiente' && invitacion.status !== 'expirada') {
+      return res.status(409).json({ error: 'No se puede cancelar una invitación que ya fue aceptada o cancelada' });
+    }
+
+    // 2. Validar permisos de Jefe de Área
+    if (req.perfil.rol.nivel < NIVELES.ADMINISTRADOR) {
+      const { data: check, error: checkError } = await supabase
+        .from('user_group_role')
+        .select('id')
+        .eq('user_id', req.user.id)
+        .eq('group_id', invitacion.groups.id)
+        .maybeSingle();
+      
+      if (checkError) throw checkError;
+      if (!check) return res.status(403).json({ error: 'Solo puedes cancelar invitaciones de tus propios grupos' });
+    }
+
+    // 3. Marcar como cancelada
+    const { error: updateError } = await supabase
+      .from('invitations')
+      .update({ status: 'cancelada' })
+      .eq('id', inviteId);
+
+    if (updateError) throw updateError;
+
+    return res.json({ message: 'Invitación cancelada exitosamente' });
+  } catch (error) {
+    console.error('Error al cancelar invitación:', error);
+    return res.status(500).json({ error: 'Error interno al cancelar la invitación' });
   }
 };

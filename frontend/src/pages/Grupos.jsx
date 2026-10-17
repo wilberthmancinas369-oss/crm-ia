@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import FormularioGrupo from '../components/FormularioGrupo'
 import { listarGruposConMiembros } from '../services/grupos'
 import { useAuth } from '../context/AuthContext'
+import { reenviarInvitacion, cancelarInvitacion } from '../services/invitaciones'
 
 const formatoFecha = (iso) =>
   new Date(iso).toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' })
@@ -11,7 +12,7 @@ const formatoFecha = (iso) =>
 const claseRol = (nivel) =>
   nivel >= 2 ? 'bg-purple-100 text-purple-700' : nivel === 1 ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-700'
 
-function TarjetaGrupo({ grupo }) {
+function TarjetaGrupo({ grupo, onAccionInvitacion }) {
   return (
     <section className="bg-white p-5 rounded-lg shadow-sm border border-gray-200 space-y-4">
       <div>
@@ -50,13 +51,29 @@ function TarjetaGrupo({ grupo }) {
       )}
 
       {grupo.invitacionesPendientes.length > 0 && (
-        <div>
+        <div className="pt-2">
           <h3 className="text-xs font-semibold uppercase text-gray-500 mb-1">Invitaciones pendientes</h3>
           <ul className="text-sm divide-y divide-gray-100">
             {grupo.invitacionesPendientes.map((i) => (
-              <li key={i.id} className="py-1.5 flex flex-wrap justify-between gap-2 text-gray-600">
-                <span>{i.email} · {i.rol}</span>
-                <span className="text-xs text-gray-400">vence {formatoFecha(i.expira)}</span>
+              <li key={i.id} className="py-2 flex flex-wrap justify-between items-center gap-2 text-gray-600">
+                <div className="flex flex-col">
+                  <span className="font-medium">{i.email} · {i.rol}</span>
+                  <span className="text-[10px] text-gray-400">vence {formatoFecha(i.expira)}</span>
+                </div>
+                <div className="flex gap-2">
+                  <button 
+                    onClick={() => onAccionInvitacion('reenviar', i.id)} 
+                    className="text-xs text-blue-600 hover:underline font-medium"
+                  >
+                    Reenviar
+                  </button>
+                  <button 
+                    onClick={() => onAccionInvitacion('cancelar', i.id)} 
+                    className="text-xs text-red-600 hover:underline font-medium"
+                  >
+                    Cancelar
+                  </button>
+                </div>
               </li>
             ))}
           </ul>
@@ -86,6 +103,22 @@ export default function Grupos() {
     cargarGrupos()
   }, [cargarGrupos])
 
+  const manejarAccionInvitacion = async (accion, id) => {
+    try {
+      if (accion === 'reenviar') {
+        await reenviarInvitacion(id)
+        alert('Invitación reenviada exitosamente')
+      } else if (accion === 'cancelar') {
+        if (!window.confirm('¿Estás seguro de que deseas cancelar esta invitación?')) return
+        await cancelarInvitacion(id)
+        alert('Invitación cancelada exitosamente')
+      }
+      await cargarGrupos()
+    } catch (err) {
+      alert(err.response?.data?.error || 'Hubo un error al procesar la acción')
+    }
+  }
+
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
       <div className="border-b pb-4 border-gray-200 flex items-center justify-between">
@@ -107,7 +140,13 @@ export default function Grupos() {
           ) : grupos.length === 0 && !error ? (
             <p className="text-gray-500">Todavía no hay grupos. Crea el primero con el formulario.</p>
           ) : (
-            grupos.map((grupo) => <TarjetaGrupo key={grupo.id} grupo={grupo} />)
+            grupos.map((grupo) => (
+              <TarjetaGrupo 
+                key={grupo.id} 
+                grupo={grupo} 
+                onAccionInvitacion={puede('invitarUsuarios') ? manejarAccionInvitacion : null} 
+              />
+            ))
           )}
         </div>
       </div>

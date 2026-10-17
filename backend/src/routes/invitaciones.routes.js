@@ -1,7 +1,10 @@
 import { Router } from 'express';
 import { body, param } from 'express-validator';
 import { validarCampos } from '../middlewares/validarCampos.js';
-import { obtenerInvitacion, aceptarInvitacion } from '../controllers/invitaciones.controller.js';
+import { obtenerInvitacion, aceptarInvitacion, reenviarInvitacion, cancelarInvitacion } from '../controllers/invitaciones.controller.js';
+import { autenticar } from '../middlewares/autenticar.js';
+import { autorizarRol } from '../middlewares/autorizarRol.js';
+import { PERMISOS } from '../config/permisos.js';
 
 const router = Router();
 
@@ -19,7 +22,10 @@ export const validacionesAceptar = [
 ];
 
 router.get('/:token', [validarToken, validarCampos], obtenerInvitacion);
-
 router.post('/:token/aceptar', [validarToken, ...validacionesAceptar, validarCampos], aceptarInvitacion);
+
+// Rutas administrativas (requieren autenticación y permisos)
+router.post('/:id/reenviar', [autenticar, autorizarRol(PERMISOS.invitarUsuarios)], reenviarInvitacion);
+router.post('/:id/cancelar', [autenticar, autorizarRol(PERMISOS.invitarUsuarios)], cancelarInvitacion);
 
 export default router;
