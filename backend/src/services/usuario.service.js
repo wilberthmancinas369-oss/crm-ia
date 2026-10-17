@@ -199,5 +199,46 @@ export const usuarioService = {
       return true; // Es el único admin
     }
     return false;
+  },
+
+  /**
+   * Elimina a un usuario completamente de la empresa y del sistema de autenticación.
+   * @param {string} userId - ID del usuario a eliminar.
+   * @param {number} companyId - ID de la empresa para validación.
+   */
+  async eliminarUsuarioDeEmpresa(userId, companyId) {
+    // 1. Verificar que el usuario pertenece a la empresa antes de borrar
+    const { data: perfil, error: pError } = await supabase
+      .from('profiles')
+      .select('company_id')
+      .eq('id', userId)
+      .maybeSingle();
+
+    if (pError) throw pError;
+    if (!perfil || perfil.company_id !== companyId) {
+      throw new Error('El usuario no pertenece a esta empresa');
+    }
+
+    // 2. Borrar asignaciones de grupo y roles
+    const { error: assignError } = await supabase
+      .from('user_group_role')
+      .delete()
+      .eq('user_id', userId);
+    
+    if (assignError) throw assignError;
+
+    // 3. Borrar el perfil de la empresa
+    const { error: profileError } = await supabase
+      .from('profiles')
+      .delete()
+      .eq('id', userId);
+    
+    if (profileError) throw profileError;
+
+    // 4. Borrar la cuenta de autenticación de Supabase
+    const { error: authError } = await supabase.auth.admin.deleteUser(userId);
+    if (authError) throw authError;
+
+    return { success: true };
   }
 };

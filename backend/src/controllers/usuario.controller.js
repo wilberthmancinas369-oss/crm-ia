@@ -174,5 +174,35 @@ export const usuarioController = {
       console.error('Error al remover grupo:', error);
       return res.status(500).json({ error: error.message || 'Error interno del servidor' });
     }
+  },
+
+  /**
+   * Elimina a un usuario completamente de la empresa.
+   * POST /api/usuarios/eliminar-empresa
+   */
+  async eliminarDeEmpresa(req, res) {
+    try {
+      const { userId } = req.body;
+      const { company_id, perfil } = req;
+
+      if (!userId) {
+        return res.status(400).json({ error: 'Falta el ID del usuario' });
+      }
+
+      if (userId === req.user.id) {
+        return res.status(403).json({ error: 'No puedes eliminar tu propia cuenta de la empresa' });
+      }
+
+      // Solo el Administrador puede eliminar usuarios definitivamente de la empresa
+      if (perfil.rol.nivel < NIVELES.ADMINISTRADOR) {
+        return res.status(403).json({ error: 'Solo el Administrador de la Empresa puede eliminar usuarios definitivamente' });
+      }
+
+      const resultado = await usuarioService.eliminarUsuarioDeEmpresa(userId, company_id);
+      return res.json({ message: 'Usuario eliminado definitivamente de la empresa', resultado });
+    } catch (error) {
+      console.error('Error al eliminar usuario de la empresa:', error);
+      return res.status(500).json({ error: error.message || 'Error interno del servidor al eliminar el usuario' });
+    }
   }
 };

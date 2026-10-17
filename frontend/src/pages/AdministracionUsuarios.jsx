@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { listarGruposConMiembros } from '../services/grupos'
 import { listarRolesInvitables } from '../services/roles'
-import { cambiarRolUsuario, moverUsuarioDeGrupo, removerUsuarioDeGrupo } from '../services/usuarios'
+import { cambiarRolUsuario, moverUsuarioDeGrupo, removerUsuarioDeGrupo, eliminarUsuarioDeEmpresa } from '../services/usuarios'
 
 export default function AdministracionUsuarios() {
   const { perfil, puede } = useAuth()
@@ -90,6 +90,20 @@ export default function AdministracionUsuarios() {
     }
   }
 
+  const manejarEliminarDeEmpresa = async (userId) => {
+    if (!window.confirm('ADVERTENCIA: Esta acción eliminará permanentemente al usuario de la empresa y de la base de datos. Esta acción es irreversible. ¿Estás seguro?')) return
+    setCargandoAccion(userId)
+    try {
+      await eliminarUsuarioDeEmpresa(userId)
+      alert('Usuario eliminado definitivamente de la empresa')
+      await cargarDatos()
+    } catch (err) {
+      alert(err.response?.data?.error || 'Error al eliminar el usuario de la empresa')
+    } finally {
+      setCargandoAccion(null)
+    }
+  }
+
   if (!perfil) return <p className="p-6 text-gray-500">Cargando...</p>
 
   // El Agente no debe ver esta pantalla (según requerimiento)
@@ -168,6 +182,19 @@ export default function AdministracionUsuarios() {
                       >
                         Remover
                       </button>
+                      {/* Solo el Administrador (nivel 2) puede eliminar usuarios de la empresa */}
+                      {perfil.rol.nivel === 2 && u.id !== perfil.id && (
+                        <button
+                          onClick={() => manejarEliminarDeEmpresa(u.id)}
+                          disabled={cargandoAccion === u.id}
+                          className="inline-flex items-center gap-1 text-xs text-red-700 hover:text-red-900 font-bold disabled:text-gray-400"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                            <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
+                          </svg>
+                          Eliminar Empresa
+                        </button>
+                      )}
                     </td>
                   </tr>
                 ))

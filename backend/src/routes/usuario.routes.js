@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { autenticar } from '../middlewares/autenticar.js';
 import { autorizarRol } from '../middlewares/autorizarRol.js';
-import { PERMISOS } from '../config/permisos.js';
+import { PERMISOS, NIVELES } from '../config/permisos.js';
 import { usuarioController } from '../controllers/usuario.controller.js';
 
 const router = Router();
@@ -15,5 +15,6 @@ const NIVELES_MINIMOS = {
 router.post('/cambiar-rol', [autenticar, autorizarRol(NIVELES_MINIMOS.GESTOR)], usuarioController.cambiarRol);
 router.post('/mover-grupo', [autenticar, autorizarRol(NIVELES_MINIMOS.GESTOR)], usuarioController.moverGrupo);
 router.post('/remover-grupo', [autenticar, autorizarRol(NIVELES_MINIMOS.GESTOR)], usuarioController.removerGrupo);
+router.post('/eliminar-empresa', [autenticar, autorizarRol(NIVELES.ADMINISTRADOR)], usuarioController.eliminarDeEmpresa);
 
 export default router;
