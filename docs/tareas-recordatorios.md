@@ -23,8 +23,8 @@ tengan tareas asociadas; primero se deben reasignar o eliminar esas tareas.
 Al eliminar la empresa, sus tareas también se eliminan.
 
 La tabla activa RLS y conserva el aislamiento por empresa utilizado en los modelos
-actuales. El control de acceso por grupo deberá seguir el contacto o la oportunidad
-relacionados cuando se implemente el servicio, como sucede con las interacciones.
+actuales. El servicio verifica el alcance por grupo a través del contacto o la
+oportunidad relacionados, como sucede con las interacciones.
 
 ## Aplicación
 
@@ -33,5 +33,41 @@ aplicadas, ejecutar una sola vez `backend/db/migrations/tareas_recordatorios.sql
 en el SQL Editor de Supabase. Esta entrega solo agrega el archivo de migración;
 no lo ejecuta contra la base de datos.
 
-Este alcance solo define el modelo. La API, las pantallas y la programación o envío
-de recordatorios quedan para las siguientes mini tareas.
+## Servicio y endpoints
+
+Se utiliza el mismo backend Express y cliente Supabase del CRM. Todas las rutas
+requieren `Authorization: Bearer <token>` y el permiso existente `gestionarCRM`.
+La empresa se obtiene de la sesión; solo se aceptan los campos editables del modelo.
+El responsable debe pertenecer a esa empresa y el vínculo debe estar dentro de
+los grupos permitidos para el usuario (el administrador tiene alcance de empresa).
+
+| Método | Ruta | Acción |
+|---|---|---|
+| POST | `/api/tareas` | Crear una tarea; responde 201 con la tarea. |
+| PUT | `/api/tareas/:id` | Editar los campos enviados; responde 200 con la tarea. |
+| PATCH | `/api/tareas/:id/completar` | Cambiar el estado a `Completada`; responde 200 con la tarea. |
+
+Ejemplo de cuerpo para crear:
+
+```json
+{
+  "titulo": "Llamar al contacto",
+  "fecha_limite": "2026-10-20T15:00:00-07:00",
+  "responsable_id": "11111111-1111-4111-8111-111111111111",
+  "contacto_id": "22222222-2222-4222-8222-222222222222"
+}
+```
+
+`estado` es opcional al crear y su valor inicial es `Pendiente`. Para ligar la tarea
+a una oportunidad, enviar `oportunidad_id` en lugar de `contacto_id`.
+Al editar se valida el resultado completo: para cambiar de contacto a oportunidad,
+enviar `contacto_id: null` junto con el nuevo `oportunidad_id` (y viceversa).
+Completar no requiere cuerpo y solo modifica el estado; repetirlo mantiene la tarea
+completada. La edición permite cambiar el estado a cualquiera de los tres valores.
+
+Los datos inválidos responden 400. Sin sesión se responde 401; sin permiso, 403.
+Una tarea o vínculo inexistentes, de otra empresa o fuera del alcance responden 404.
+Los errores inesperados del servicio responden 500.
+
+No se incluyen endpoints de consulta o eliminación, pantallas ni programación o
+envío de recordatorios. Para usar estas rutas, la migración del modelo debe estar aplicada.
