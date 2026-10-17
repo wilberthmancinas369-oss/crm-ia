@@ -3,7 +3,7 @@ import { body, param } from 'express-validator';
 import { autenticar } from '../middlewares/autenticar.js';
 import { autorizar } from '../middlewares/autorizarRol.js';
 import { validarCampos } from '../middlewares/validarCampos.js';
-import { createTarea, updateTarea, completarTarea } from '../controllers/tareas.controller.js';
+import { getMisTareas, createTarea, updateTarea, completarTarea } from '../controllers/tareas.controller.js';
 
 const router = Router();
 router.use(autenticar, autorizar('gestionarCRM'));
@@ -30,6 +30,7 @@ export const validacionesTarea = (crear = false) => {
 
 const validarId = () => param('id').isUUID().withMessage('El id de la tarea debe ser un UUID válido');
 
+router.get('/', getMisTareas);
 router.post('/', validacionesTarea(true), validarCampos, createTarea);
 router.put('/:id', validarId(), validacionesTarea(), validarCampos, updateTarea);
 router.patch('/:id/completar', validarId(), validarCampos, completarTarea);

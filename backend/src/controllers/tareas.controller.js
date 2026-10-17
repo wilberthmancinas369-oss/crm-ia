@@ -1,6 +1,14 @@
 import { tareasService } from '../services/tareas.service.js';
 import { ambitoDe, buscarContactoVisible, buscarOportunidadVisible } from '../services/alcance.service.js';
 
+export const getMisTareas = async (req, res) => {
+  try {
+    res.json(await tareasService.getMisTareas(req.user.id, ambitoDe(req)));
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
 const camposTarea = (body) => {
   const datos = {};
   for (const campo of ['titulo', 'fecha_limite', 'estado', 'responsable_id', 'contacto_id', 'oportunidad_id']) {

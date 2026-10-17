@@ -3,8 +3,8 @@ import crypto from 'node:crypto';
 // Base de datos en memoria con la forma del cliente de Supabase que usa el backend:
 // from(tabla).select/insert/update/delete + eq/in/lt/lte + order/limit + single/maybeSingle/await.
 // Aplica de verdad los filtros sobre las filas, así una consulta sin filtro de grupo devuelve
-// datos de otros grupos y la prueba lo detecta. Los filtros sobre tablas embebidas
-// ('tabla.columna') se ignoran: no hay joins.
+// datos de otros grupos y la prueba lo detecta. Soporta los joins !inner de tareas
+// con contactos y oportunidades; los demás joins no se simulan.
 class Consulta {
   constructor(tablas, tabla) {
     this.tablas = tablas;
@@ -12,9 +12,13 @@ class Consulta {
     this.filtros = [];
     this.operacion = 'select';
     this.datos = null;
+    this.embebidas = [];
   }
 
-  select() { return this; }
+  select(columnas = '') {
+    this.embebidas = ['contactos', 'oportunidades'].filter((tabla) => columnas.includes(`${tabla}!inner`));
+    return this;
+  }
   insert(filas) { this.operacion = 'insert'; this.datos = filas; return this; }
   update(valores) { this.operacion = 'update'; this.datos = valores; return this; }
   delete() { this.operacion = 'delete'; return this; }
@@ -23,6 +27,10 @@ class Consulta {
 
   filtrar(columna, prueba) {
     if (!columna.includes('.')) this.filtros.push((fila) => prueba(fila[columna]));
+    else if (this.embebidas.includes(columna.split('.')[0])) {
+      const [tabla, campo] = columna.split('.');
+      this.filtros.push((fila) => prueba(fila[tabla]?.[campo]));
+    }
     return this;
   }
   eq(columna, valor) { return this.filtrar(columna, (v) => v === valor); }
@@ -31,7 +39,13 @@ class Consulta {
   lte(columna, valor) { return this.filtrar(columna, (v) => v <= valor); }
 
   async ejecutar() {
-    const filas = (this.tablas[this.tabla] ??= []);
+    let filas = (this.tablas[this.tabla] ??= []);
+    for (const tabla of this.embebidas) {
+      const llave = tabla === 'contactos' ? 'contacto_id' : 'oportunidad_id';
+      filas = filas.map((fila) => ({
+        ...fila, [tabla]: (this.tablas[tabla] ?? []).find((vinculo) => vinculo.id === fila[llave])
+      })).filter((fila) => fila[tabla]);
+    }
     const coincide = (fila) => this.filtros.every((f) => f(fila));
 
     if (this.operacion === 'insert') {

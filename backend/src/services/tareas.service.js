@@ -1,7 +1,23 @@
 import supabase from '../config/supabase.js';
-import { buscarContactoVisible, buscarOportunidadVisible } from './alcance.service.js';
+import { buscarContactoVisible, buscarOportunidadVisible, filtrarPorGrupos } from './alcance.service.js';
 
 export const tareasService = {
+  async getMisTareas(responsableId, { companyId, alcance }) {
+    // Cada consulta hereda el grupo de su vínculo; !inner excluye tareas del otro tipo.
+    const consultas = [
+      ['contactos', 'id, nombre, apellido, group_id'],
+      ['oportunidades', 'id, nombre_oportunidad, group_id']
+    ].map(([tabla, campos]) => filtrarPorGrupos(
+      supabase.from('tareas').select(`*, ${tabla}!inner(${campos})`)
+        .eq('company_id', companyId).eq('responsable_id', responsableId),
+      alcance, `${tabla}.group_id`
+    ));
+    const resultados = await Promise.all(consultas);
+    for (const resultado of resultados) if (resultado.error) throw resultado.error;
+    return resultados.flatMap(({ data }) => data)
+      .sort((a, b) => new Date(a.fecha_limite) - new Date(b.fecha_limite));
+  },
+
   // La tarea hereda el alcance del contacto o la oportunidad vinculados.
   async getById(id, ambito) {
     const { data, error } = await supabase.from('tareas').select('*')

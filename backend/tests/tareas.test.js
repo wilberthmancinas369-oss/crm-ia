@@ -187,3 +187,34 @@ test('propaga los errores de base de datos como 500', async () => {
   assert.equal(respuesta.status, 500);
   assert.equal(respuesta.body.error, 'Fallo de base de datos');
 });
+
+test('Mis tareas reúne ambos vínculos, ordena por fecha y excluye otros responsables, empresas y grupos', async () => {
+  tablas.contactos.push({ id: ids.otro, company_id: 'empresa-1', group_id: 'grupo-2' });
+  tablas.tareas.push(
+    { ...tablas.tareas[0], id: 'oportunidad', contacto_id: null, oportunidad_id: ids.oportunidad, fecha_limite: '2026-10-19T10:00:00Z' },
+    { ...tablas.tareas[0], id: 'otro-responsable', responsable_id: ids.otro },
+    { ...tablas.tareas[0], id: 'otra-empresa', company_id: 'empresa-2' },
+    { ...tablas.tareas[0], id: 'otro-grupo', contacto_id: ids.otro }
+  );
+  const respuesta = await pedir('GET', `?responsable_id=${ids.otro}&company_id=empresa-2`);
+  assert.equal(respuesta.status, 200);
+  assert.deepEqual(respuesta.body.map((tarea) => tarea.id), ['oportunidad', ids.tarea]);
+  assert.equal(respuesta.body[1].contactos.id, ids.contacto);
+});
+
+test('el administrador también ve solamente sus tareas, con alcance en todos los grupos de su empresa', async () => {
+  perfilService.obtener = async () => ({ empresa: { id: 'empresa-1' }, grupos: [{ id: 'grupo-1', nivel: 2 }] });
+  tablas.contactos[0].group_id = 'grupo-2';
+  tablas.tareas.push({ ...tablas.tareas[0], id: 'otro', responsable_id: ids.otro });
+  const respuesta = await pedir('GET');
+  assert.equal(respuesta.status, 200);
+  assert.deepEqual(respuesta.body.map((tarea) => tarea.id), [ids.tarea]);
+});
+
+test('Mis tareas devuelve lista vacía si no hay asignadas y exige sesión', async () => {
+  tablas.tareas = [];
+  const respuesta = await pedir('GET');
+  assert.equal(respuesta.status, 200);
+  assert.deepEqual(respuesta.body, []);
+  assert.equal((await pedir('GET', '', undefined, false)).status, 401);
+});

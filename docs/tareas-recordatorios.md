@@ -43,6 +43,7 @@ los grupos permitidos para el usuario (el administrador tiene alcance de empresa
 
 | Método | Ruta | Acción |
 |---|---|---|
+| GET | `/api/tareas` | Listar las tareas del usuario autenticado, ordenadas por fecha límite y dentro de su alcance. |
 | POST | `/api/tareas` | Crear una tarea; responde 201 con la tarea. |
 | PUT | `/api/tareas/:id` | Editar los campos enviados; responde 200 con la tarea. |
 | PATCH | `/api/tareas/:id/completar` | Cambiar el estado a `Completada`; responde 200 con la tarea. |
@@ -69,5 +70,18 @@ Los datos inválidos responden 400. Sin sesión se responde 401; sin permiso, 40
 Una tarea o vínculo inexistentes, de otra empresa o fuera del alcance responden 404.
 Los errores inesperados del servicio responden 500.
 
-No se incluyen endpoints de consulta o eliminación, pantallas ni programación o
-envío de recordatorios. Para usar estas rutas, la migración del modelo debe estar aplicada.
+## Vista Mis tareas
+
+Disponible en `/app/tareas` y en la opción **Mis tareas** del menú, con el permiso
+`gestionarCRM`. Muestra título, fecha límite, estado y contacto u oportunidad de las
+tareas asignadas al usuario actual. Incluye estados de carga, lista vacía y error
+con opción de reintentar.
+
+El formulario permite crear una tarea propia con título, fecha y hora límite y un
+contacto u oportunidad visible. El responsable es el usuario actual y el estado
+inicial es `Pendiente`. La fecha se ingresa en la hora local del dispositivo y se
+envía en UTC. Al guardar, la tarea aparece en la lista sin recargar la página.
+
+No se incluyen controles de edición o finalización en esta vista, eliminación ni
+programación o envío de recordatorios. Para usar estas rutas y la vista, la migración
+del modelo debe estar aplicada.
