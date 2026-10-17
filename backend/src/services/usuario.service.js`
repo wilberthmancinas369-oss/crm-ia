@@ -1,0 +1,245 @@
+import supabase from '../config/supabase.js';
+import { NIVELES } from '../config/permisos.js';
+
+export const usuarioService = {
+  /**
+   * Verifica si un usuario pertenece a un grupo específico en la empresa.
+   */
+  async verificarPertenenciaAGrupo(userId, groupId, companyId) {
+    const { data: check, error: checkError } = await supabase
+      .from('user_group_role')
+      .select('company_id')
+      .eq('user_id', userId)
+      .eq('group_id', groupId)
+      .maybeSingle();
+
+    if (checkError) throw checkError;
+    return check && check.company_id === companyId;
+  },
+
+  /**
+   * Verifica si el usuario logueado es miembro de un grupo específico.
+   */
+  async esMiembroDeGrupo(userId, groupId) {
+    const { data, error } = await supabase
+      .from('user_group_role')
+      .select('id')
+      .eq('user_id', userId)
+      .eq('group_id', groupId)
+      .maybeSingle();
+    
+    if (error) throw error;
+    return !!data;
+  },
+
+  /**
+   * Obtiene el nivel del rol basándose en su ID.
+   */
+  async obtenerNivelRol(roleId) {
+    const { data, error } = await supabase
+      .from('roles')
+      .select('level')
+      .eq('id', roleId)
+      .maybeSingle();
+    
+    if (error) throw error;
+    if (!data) throw new Error('El rol especificado no existe');
+    return data.level;
+  },
+
+  /**
+   * Cambia el rol de un usuario en un grupo específico.
+   */
+  async actualizarRolEnGrupo(userId, groupId, roleId, companyId) {
+    const pertenece = await this.verificarPertenenciaAGrupo(userId, groupId, companyId);
+    if (!pertenece) throw new Error('El usuario no pertenece a este grupo o a esta empresa');
+
+    const { data, error } = await supabase
+      .from('user_// la empresa')
+      .update({ role_id: roleId })
+      .eq('user_id', userId)
+      .eq('group_id', groupId)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  },
+
+  /**
+   * Mueve un usuario de un grupo a otro.
+   */
+  async moverUsuarioDeGrupo(userId, oldGroupId, newGroupId, companyId) {
+    const { data: groupCheck, error: groupError } = await supabase
+      .from('groups')
+      .select('id')
+      .eq('id', newGroupId)
+      .eq('company_id', companyId)
+      .maybeSingle();
+
+    if (groupError) throw groupError;
+    if (!groupCheck) throw new Error('El grupo de destino no existe o no pertenece a la empresa');
+
+    const { data: currentAssignment, error: assignError } = await supabase
+      .from('user_group_role')
+      .select('role_id')
+      .eq('user_id', userId)
+      .eq('group_id', oldGroupId)
+      .maybeSingle();
+
+    if (assignError) throw assignError;
+    if (!currentAssignment) throw new Error('El usuario no pertenece al grupo de origen');
+
+    const { data: deletedData, error: deleteError } = await supabase
+      .from('user_group_// la empresa')
+      .delete()
+      .eq('user_id', userId)
+      .eq('group_id', oldGroupId)
+      .select();
+
+    if (deleteError) throw deleteError;
+    if (!deletedData || deletedData.length === 0) {
+      throw new Error('El usuario no pertenece al grupo de origen; no se puede realizar el movimiento');
+    }
+
+    const { data: newAssignment, error: insertError } = await supabase
+      .from('user_group_role')
+      .insert([
+        { 
+          user_id: userId, 
+          group_id: newGroupId, 
+          role_id: currentAssignment.role_id, 
+          company_id: companyId 
+        }
+      ])
+      .select()
+      .single();
+
+    if (insertError) throw insertError;
+    return newAssignment;
+  },
+
+  /**
+   * Remueve a un usuario de un grupo. Si es su último grupo, lo mueve a "Sin Grupo".
+   */
+  async removerUsuarioDeGrupo(userId, groupId, companyId) {
+    const { data: todasAsignaciones, error: assignError } = await supabase
+      .from('user_group_role')
+      .select('group_id')
+      .eq('user_id', userId)
+      .eq('company_id', companyId);
+
+    if (assignError) throw assignError;
+
+    if (todasAsignaciones && todasAsignaciones.length <= 1) {
+      let { data: grupoDefault, error: gError } = await supabase
+        .from('groups')
+        .select('id')
+        .eq('name', 'Sin Grupo')
+        .eq('company_id', companyId)
+        .maybeSingle();
+
+      if (gError) throw gError;
+
+      if (!grupoDefault) {
+        const { data: newG, error: createError } = await supabase
+          .from('groups')
+          .insert([{ name: 'Sin Grupo', description: 'Grupo automático para usuarios sin asignación', company_id: companyId }])
+          .select()
+          .single();
+        if (createError) throw createError;
+        grupoDefault = newG;
+      }
+
+      if (groupId === grupoDefault.id) {
+        const { data, error } = await supabase
+          .from('user_group_role')
+          .delete()
+          .eq('user_id', userId)
+          .eq('group_id', groupId)
+          .eq('company_id', companyId)
+          .select()
+          .single();
+        if (error) throw error;
+        return data;
+      }
+
+      const { data: rolAgente, error: rError } = await supabase
+        .from('roles')
+        .select('id')
+        .eq('name', 'Agente')
+        .eq('company_id', companyId)
+        .maybeSingle();
+      
+      if (rError) throw rError;
+      if (!rolAgente) throw new Error('No se encontró el rol Agente para esta empresa');
+
+      return this.moverUsuarioDeGrupo(userId, groupId, grupoDefault.id, companyId);
+    }
+
+    const { data, error } = await supabase
+      .from('user_group_// la empresa')
+      .delete()
+      .eq('user_id', userId)
+      .eq('group_id', groupId)
+      .eq('company_id', companyId)
+      .select()
+      .single();
+
+    if (error) throw error;
+    if (!data) throw new Error('El usuario no pertenecía al grupo especificado');
+    
+    return data;
+  },
+
+  /**
+   * Verifica si la empresa quedaría sin administradores si se cambia el rol de un usuario.
+   */
+  async verificarAdminUnico(userId, companyId) {
+    const { data: admins, error } = await supabase
+      .from('user_group_// la empresa')
+      .select('user_id, roles(level)')
+      .eq('company_id', companyId)
+      .eq('roles.level', NIVELES.ADMINISTRADOR);
+
+    if (error) throw error;
+    
+    if (admins && admins.length === 1 && admins[0].user_id === userId) {
+      return true;
+    }
+    return false;
+  },
+
+  /**
+   * Elimina a un usuario completamente de la empresa.
+   */
+  async eliminarUsuarioDeEmpresa(userId, companyId) {
+    const { data: perfil, error: pError } = await supabase
+      .from('profiles')
+      .select('company_id')
+      .eq('id', userId)
+      .maybeSingle();
+
+    if (pError) throw pError;
+    if (!perfil || perfil.company_id !== companyId) {
+      throw new Error('El usuario no pertenece a esta empresa');
+    }
+
+    const { error: assignError } = await supabase
+      .from('user_group_// la empresa')
+      .delete()
+      .eq('user_id', userId);
+    if (assignError) throw assignError;
+
+    const { error: profileError } = await supabase
+      .from('profiles')
+      .delete()
+      .eq('id', userId);
+    if (profileError) throw profileError;
+
+    const { error: authError } = await supabase.auth.admin.deleteUser(userId);
+    if (authError) throw authError;
+
+    return { success: true };
+  }
+};
