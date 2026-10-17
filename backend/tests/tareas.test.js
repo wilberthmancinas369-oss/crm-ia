@@ -1,4 +1,4 @@
-import { test, before, after, beforeEach } from 'node:test';
+import { test, before, after, beforeEach, mock } from 'node:test';
 import assert from 'node:assert/strict';
 import express from 'express';
 import { supabaseFalso } from './helpers/supabaseFalso.js';
@@ -9,6 +9,7 @@ process.env.SUPABASE_SERVICE_ROLE_KEY = 'clave-de-prueba';
 const { default: supabase } = await import('../src/config/supabase.js');
 const { perfilService } = await import('../src/services/perfil.service.js');
 const { default: tareasRoutes } = await import('../src/routes/tareas.routes.js');
+const { recordatoriosService } = await import('../src/services/recordatorios.service.js');
 
 const ids = {
   responsable: '11111111-1111-4111-8111-111111111111',
@@ -233,3 +234,76 @@ test('editar fecha o responsable reinicia el recordatorio; otros cambios conserv
   assert.equal(reasignar.status, 200);
   assert.equal(reasignar.body.recordatorio_enviado_at, null);
 });
+
+// Flujo integrado: rutas HTTP, servicios, consulta de vencimientos y formato real
+// del correo. Solo Supabase y la respuesta externa de Brevo están simulados.
+for (const tipo of ['contacto', 'oportunidad']) {
+  test(`flujo completo con ${tipo}: alta → consulta → edición → recordatorio → reprogramación → completar`, async (t) => {
+    tablas.tareas = [];
+    tablas.profiles[0].email = 'responsable@example.test';
+    const variables = ['BREVO_API_KEY', 'BREVO_SENDER_EMAIL', 'FRONTEND_URL'];
+    const anteriores = Object.fromEntries(variables.map((clave) => [clave, process.env[clave]]));
+    process.env.BREVO_API_KEY = 'clave-ficticia';
+    process.env.BREVO_SENDER_EMAIL = 'crm@example.test';
+    process.env.FRONTEND_URL = 'https://crm.example.test';
+    const correos = [];
+    const fetchOriginal = globalThis.fetch;
+    const transporte = mock.method(globalThis, 'fetch', async (url, opciones) => {
+      if (url !== 'https://api.brevo.com/v3/smtp/email') return fetchOriginal(url, opciones);
+      correos.push(JSON.parse(opciones.body));
+      return { ok: true, json: async () => ({ messageId: `correo-${correos.length}` }) };
+    });
+    t.after(() => {
+      transporte.mock.restore();
+      for (const clave of variables) {
+        if (anteriores[clave] === undefined) delete process.env[clave];
+        else process.env[clave] = anteriores[clave];
+      }
+    });
+
+    const ahora = new Date('2026-10-20T12:00:00.000Z');
+    const vinculo = tipo === 'contacto' ? { contacto_id: ids.contacto } : { oportunidad_id: ids.oportunidad };
+    const creada = await pedir('POST', '', {
+      titulo: `Seguimiento de ${tipo}`, fecha_limite: '2026-10-22T12:00:00.000Z',
+      responsable_id: ids.responsable, ...vinculo
+    });
+    assert.equal(creada.status, 201);
+    assert.equal(creada.body.estado, 'Pendiente');
+    const id = creada.body.id;
+    const listado = await pedir('GET');
+    assert.equal(listado.status, 200);
+    assert.deepEqual(listado.body.map((fila) => fila.id), [id]);
+
+    await recordatoriosService.enviarPendientes(ahora);
+    assert.equal(correos.length, 0, 'No avisa con más de 24 horas de anticipación');
+    const editada = await pedir('PUT', `/${id}`, {
+      titulo: 'Confirmar seguimiento', estado: 'En progreso', fecha_limite: '2026-10-21T11:00:00.000Z'
+    });
+    assert.equal(editada.status, 200);
+    assert.equal(editada.body.estado, 'En progreso');
+    await recordatoriosService.enviarPendientes(ahora);
+    await recordatoriosService.enviarPendientes(ahora);
+    assert.equal(correos.length, 1, 'Solo envía un recordatorio por vencimiento');
+    assert.equal(correos[0].to[0].email, 'responsable@example.test');
+    assert.equal(correos[0].subject, 'Recordatorio de vencimiento: Confirmar seguimiento');
+    assert.ok(correos[0].htmlContent.includes('https://crm.example.test/app/tareas'));
+
+    const reprogramada = await pedir('PUT', `/${id}`, { fecha_limite: '2026-10-21T10:00:00.000Z' });
+    assert.equal(reprogramada.status, 200);
+    assert.equal(reprogramada.body.recordatorio_enviado_at, null);
+    await recordatoriosService.enviarPendientes(ahora);
+    assert.equal(correos.length, 2, 'La nueva fecha permite un nuevo recordatorio');
+
+    // Reinicia la marca para verificar que completar bloquea un envío pendiente.
+    assert.equal((await pedir('PUT', `/${id}`, { fecha_limite: '2026-10-21T09:00:00.000Z' })).status, 200);
+    const completada = await pedir('PATCH', `/${id}/completar`);
+    assert.equal(completada.status, 200);
+    assert.equal(completada.body.estado, 'Completada');
+    await recordatoriosService.enviarPendientes(ahora);
+    assert.equal(correos.length, 2, 'No envía recordatorios de una tarea completada');
+    const consultaFinal = await pedir('GET');
+    assert.equal(consultaFinal.status, 200);
+    assert.equal(consultaFinal.body[0].estado, 'Completada');
+    assert.equal(consultaFinal.body[0].titulo, 'Confirmar seguimiento');
+  });
+}

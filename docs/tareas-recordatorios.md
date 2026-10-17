@@ -119,3 +119,6 @@ de programación ni cambios de interfaz.
 
 La migración y los envíos reales deben verificarse en la instancia de Supabase/Brevo;
 las pruebas automatizadas utilizan datos y correos simulados.
+
+El resultado de la mini tarea de prueba de flujo completo y el recorrido pendiente
+del entorno real se documentan en [prueba-flujo-tareas.md](prueba-flujo-tareas.md).
