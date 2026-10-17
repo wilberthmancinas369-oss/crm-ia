@@ -19,6 +19,7 @@ import invitacionesRoutes from './routes/invitaciones.routes.js';
 import rolesRoutes from './routes/roles.routes.js';
 import authRoutes from './routes/auth.routes.js';
 import tareasRoutes from './routes/tareas.routes.js';
+import { iniciarRecordatorios } from './services/recordatorios.service.js';
 app.use('/api/contactos', contactosRoutes);
 app.use('/api/oportunidades', oportunidadesRoutes);
 app.use('/api/interacciones', interaccionesRouter);
@@ -36,4 +37,5 @@ app.get('/', (req, res) => {
 // Iniciar Servidor
 app.listen(PORT, () => {
   console.log(`Servidor corriendo en http://localhost:${PORT}`);
+  iniciarRecordatorios();
 });

@@ -53,6 +53,10 @@ export const updateTarea = async (req, res) => {
     if (!Object.keys(datos).length) return res.status(400).json({ error: 'Indica al menos un campo de la tarea' });
     const invalido = await validarRelaciones({ ...actual, ...datos }, ambito);
     if (invalido) return res.status(invalido.status).json({ error: invalido.error });
+    if ((datos.fecha_limite !== undefined && new Date(datos.fecha_limite).getTime() !== new Date(actual.fecha_limite).getTime())
+      || (datos.responsable_id !== undefined && datos.responsable_id !== actual.responsable_id)) {
+      datos.recordatorio_enviado_at = null;
+    }
     const tarea = await tareasService.update(req.params.id, datos, ambito);
     if (!tarea) return res.status(404).json({ error: 'Tarea no encontrada' });
     res.json(tarea);

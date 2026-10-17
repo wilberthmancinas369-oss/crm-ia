@@ -127,8 +127,7 @@ export default function MisTareas() {
                   {!vinculos.length && <p className="text-sm text-gray-500 mt-1">No hay {tipoVinculo === 'contacto' ? 'contactos' : 'oportunidades'} disponibles. Registra uno en su apartado para poder vincular la tarea.</p>}
                 </div>
               </fieldset>
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <p className="text-sm text-gray-600">Responsable: <span className="font-medium">{perfil.usuario.nombre || perfil.usuario.email} (tú)</span></p>
+              <div className="flex flex-wrap items-center justify-end gap-3">
                 <button type="submit" className="btn disabled:opacity-60" disabled={isSubmitting || !vinculos.length}>
                   {isSubmitting ? 'Guardando...' : 'Guardar tarea'}
                 </button>

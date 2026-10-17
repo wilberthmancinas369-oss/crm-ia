@@ -218,3 +218,18 @@ test('Mis tareas devuelve lista vacía si no hay asignadas y exige sesión', asy
   assert.deepEqual(respuesta.body, []);
   assert.equal((await pedir('GET', '', undefined, false)).status, 401);
 });
+
+test('editar fecha o responsable reinicia el recordatorio; otros cambios conservan la marca', async () => {
+  tablas.tareas[0].recordatorio_enviado_at = '2026-10-19T10:00:00Z';
+  const editarTitulo = await pedir('PUT', `/${ids.tarea}`, { titulo: 'Otro título', recordatorio_enviado_at: null });
+  assert.equal(editarTitulo.status, 200);
+  assert.equal(editarTitulo.body.recordatorio_enviado_at, '2026-10-19T10:00:00Z');
+  const editarFecha = await pedir('PUT', `/${ids.tarea}`, { fecha_limite: '2026-10-22T15:00:00-07:00' });
+  assert.equal(editarFecha.status, 200);
+  assert.equal(editarFecha.body.recordatorio_enviado_at, null);
+  tablas.tareas[0].recordatorio_enviado_at = '2026-10-19T10:00:00Z';
+  tablas.profiles.push({ id: ids.otro, company_id: 'empresa-1' });
+  const reasignar = await pedir('PUT', `/${ids.tarea}`, { responsable_id: ids.otro });
+  assert.equal(reasignar.status, 200);
+  assert.equal(reasignar.body.recordatorio_enviado_at, null);
+});

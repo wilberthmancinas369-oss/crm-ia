@@ -82,6 +82,40 @@ contacto u oportunidad visible. El responsable es el usuario actual y el estado
 inicial es `Pendiente`. La fecha se ingresa en la hora local del dispositivo y se
 envía en UTC. Al guardar, la tarea aparece en la lista sin recargar la página.
 
-No se incluyen controles de edición o finalización en esta vista, eliminación ni
-programación o envío de recordatorios. Para usar estas rutas y la vista, la migración
-del modelo debe estar aplicada.
+No se incluyen controles de edición o finalización en esta vista ni eliminación.
+Para usar estas rutas y la vista, la migración del modelo debe estar aplicada.
+
+## Recordatorio de vencimiento por correo
+
+El backend reutiliza la integración existente de Brevo. Al arrancar y cada 15 minutos
+busca tareas sin completar, todavía no vencidas, cuya fecha límite esté en las próximas
+24 horas y que aún no tengan un recordatorio enviado. Envía al correo del perfil
+responsable el título, la fecha límite y un enlace a `/app/tareas`, con la paleta del CRM.
+Una tarea creada con menos de 24 horas de anticipación entra en la siguiente revisión.
+
+Para habilitarlo:
+
+1. Aplicar una sola vez `backend/db/migrations/tareas_recordatorio_vencimiento.sql`
+   en el SQL Editor de Supabase, después de la migración del modelo de tareas.
+2. Configurar `BREVO_API_KEY`, `BREVO_SENDER_EMAIL` (remitente verificado),
+   `BREVO_SENDER_NAME` y `FRONTEND_URL` en `backend/.env`, como en las invitaciones.
+3. Configurar `RECORDATORIOS_ACTIVOS=true` y reiniciar el backend. Por defecto no
+   se activa, para permitir aplicar la migración y configurar Brevo antes de enviar.
+4. `RECORDATORIOS_ZONA_HORARIA` define cómo se muestra la fecha en el correo;
+   su valor predeterminado es `America/Tijuana`. La comparación de vencimientos usa UTC.
+
+`recordatorio_enviado_at` se guarda cuando Brevo acepta el correo. Los siguientes
+ciclos omiten esa tarea; si el envío falla, vuelve a intentarse en la siguiente revisión
+mientras siga dentro del plazo. Cambiar la fecha límite o el responsable desde la API
+limpia esa marca para permitir un nuevo recordatorio. Cambiar solo el título o el estado
+no la limpia. Las tareas completadas o vencidas se excluyen.
+
+Este proceso requiere mantener encendida **una sola instancia** del backend con los
+recordatorios activos. No ejecuta revisiones con el servidor apagado y no recupera
+recordatorios de tareas que ya vencieron. La marca evita repeticiones en los ciclos
+normales; si el proceso se interrumpe después de enviar pero antes de guardar la marca,
+el siguiente ciclo podría repetir el correo. No se agregaron colas, servicios externos
+de programación ni cambios de interfaz.
+
+La migración y los envíos reales deben verificarse en la instancia de Supabase/Brevo;
+las pruebas automatizadas utilizan datos y correos simulados.

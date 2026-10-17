@@ -4,7 +4,7 @@ import crypto from 'node:crypto';
 // from(tabla).select/insert/update/delete + eq/in/lt/lte + order/limit + single/maybeSingle/await.
 // Aplica de verdad los filtros sobre las filas, así una consulta sin filtro de grupo devuelve
 // datos de otros grupos y la prueba lo detecta. Soporta los joins !inner de tareas
-// con contactos y oportunidades; los demás joins no se simulan.
+// con contactos, oportunidades y perfiles; los demás joins no se simulan.
 class Consulta {
   constructor(tablas, tabla) {
     this.tablas = tablas;
@@ -16,7 +16,7 @@ class Consulta {
   }
 
   select(columnas = '') {
-    this.embebidas = ['contactos', 'oportunidades'].filter((tabla) => columnas.includes(`${tabla}!inner`));
+    this.embebidas = ['contactos', 'oportunidades', 'profiles'].filter((tabla) => columnas.includes(`${tabla}!inner`));
     return this;
   }
   insert(filas) { this.operacion = 'insert'; this.datos = filas; return this; }
@@ -34,6 +34,9 @@ class Consulta {
     return this;
   }
   eq(columna, valor) { return this.filtrar(columna, (v) => v === valor); }
+  neq(columna, valor) { return this.filtrar(columna, (v) => v !== valor); }
+  is(columna, valor) { return this.filtrar(columna, (v) => valor === null ? v == null : v === valor); }
+  gt(columna, valor) { return this.filtrar(columna, (v) => v > valor); }
   in(columna, valores) { return this.filtrar(columna, (v) => valores.includes(v)); }
   lt(columna, valor) { return this.filtrar(columna, (v) => v < valor); }
   lte(columna, valor) { return this.filtrar(columna, (v) => v <= valor); }
@@ -41,7 +44,7 @@ class Consulta {
   async ejecutar() {
     let filas = (this.tablas[this.tabla] ??= []);
     for (const tabla of this.embebidas) {
-      const llave = tabla === 'contactos' ? 'contacto_id' : 'oportunidad_id';
+      const llave = { contactos: 'contacto_id', oportunidades: 'oportunidad_id', profiles: 'responsable_id' }[tabla];
       filas = filas.map((fila) => ({
         ...fila, [tabla]: (this.tablas[tabla] ?? []).find((vinculo) => vinculo.id === fila[llave])
       })).filter((fila) => fila[tabla]);
