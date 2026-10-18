@@ -160,6 +160,29 @@ test('un error de base de datos produce error y no un reporte vacío exitoso', a
   assert.equal(body.error, 'No se pudo generar el reporte del grupo');
 });
 
+test('sin group_id devuelve disponibilidad explícita sin consultar datos de toda la empresa', async () => {
+  errorConsulta = { code: '42703', message: 'column oportunidades.group_id does not exist' };
+  const { status, body } = await pedir();
+  assert.equal(status, 200);
+  assert.equal(body.ventasDisponible, false);
+  assert.equal(body.ventas, null);
+  assert.equal(body.productividadDisponible, false);
+  assert.equal(body.productividad, null);
+  assert.deepEqual(consultas, ['oportunidades']);
+});
+
+test('una columna inesperada ausente sigue siendo un error', async () => {
+  errorConsulta = { code: '42703', message: 'column oportunidades.valor_estimado does not exist' };
+  assert.equal((await pedir()).status, 500);
+});
+
+test('un Agente sigue sin acceso aunque falten migraciones', async () => {
+  errorConsulta = { code: '42703', message: 'column oportunidades.group_id does not exist' };
+  perfil.grupos = [{ id: G1, nivel: 0 }];
+  assert.equal((await pedir()).status, 403);
+  assert.deepEqual(consultas, []);
+});
+
 
 const tarea = (cambios = {}) => ({
   id: 't1', company_id: 'empresa-1', responsable_id: 'ana', estado: 'Pendiente',

@@ -18,7 +18,14 @@ export const reportesService = {
         .eq('group_id', groupId)
         .order('id', { ascending: true })
         .range(inicio, inicio + TAMANO_PAGINA - 1);
-      if (error) throw error;
+      if (error) {
+        // No consultar toda la empresa como alternativa: perdería el aislamiento por grupo.
+        if (error.code === '42703' && /column oportunidades\.group_id does not exist/.test(error.message ?? '')) {
+          return { grupo_id: groupId, ventas: null, ventasDisponible: false,
+            productividad: null, productividadDisponible: false };
+        }
+        throw error;
+      }
       for (const oportunidad of data) {
         montoCentavos += Math.round(Number(oportunidad.valor_estimado ?? 0) * 100);
         totalOportunidades++;
@@ -65,6 +72,7 @@ export const reportesService = {
     }
     return {
       grupo_id: groupId,
+      ventasDisponible: true,
       ventas: { montoTotal: montoCentavos / 100, totalOportunidades, distribucionEtapas },
       productividad: productividadDisponible ? productividad : null,
       productividadDisponible

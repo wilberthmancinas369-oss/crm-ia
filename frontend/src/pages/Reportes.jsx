@@ -45,19 +45,24 @@ export default function Reportes() {
         if (!cancelado) setResultado({ grupoId, error: 'No se pudo cargar el reporte. Intenta nuevamente.' });
       });
     return () => { cancelado = true; };
-  }, [grupoId]);
+  }, [grupoId, intento]);
 
   // Nunca muestra los resultados del grupo anterior mientras cambia la selección.
   const vigente = resultado?.grupoId === grupoId ? resultado : null;
   const data = vigente?.data;
   const error = errorGrupos || vigente?.error;
+  const agentes = Object.entries(data?.productividad ?? {})
+    .sort(([, a], [, b]) => a.nombre.localeCompare(b.nombre, 'es'));
+  const tareasPendientes = agentes.reduce((total, [, agente]) => total + agente.pendientes, 0);
+  const tareasVencidas = agentes.reduce((total, [, agente]) => total + agente.vencidas, 0);
+  const maximoPendientes = Math.max(1, ...agentes.map(([, agente]) => agente.pendientes));
   const formatoMonto = new Intl.NumberFormat('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
       <header className="border-b pb-4 space-y-2">
         <h1 className="text-2xl font-bold text-gray-800">Reporte del Jefe de Área</h1>
-        <p className="text-sm text-gray-600">Oportunidades y montos del grupo seleccionado.</p>
+        <p className="text-sm text-gray-600">Oportunidades, montos y tareas del grupo seleccionado.</p>
       </header>
       {grupos?.length > 0 && (
         <div className="max-w-sm">
@@ -79,6 +84,14 @@ export default function Reportes() {
         <p role="status" className="text-gray-500">Cargando reporte...</p>
       ) : (
         <>
+          {data.ventasDisponible === false ? (
+            <section role="status" className="bg-white border rounded-lg p-5 space-y-2">
+              <h2 className="text-lg font-semibold">Reporte por grupo no disponible</h2>
+              <p>La configuración del reporte por grupo aún está pendiente. No es posible calcular los totales de este grupo.</p>
+              <button type="button" className="btn" onClick={() => setIntento(n => n + 1)}>Reintentar</button>
+            </section>
+          ) : (
+          <>
           <div className="grid gap-4 sm:grid-cols-2">
             <section className="bg-white border rounded-lg p-5">
               <h2 className="text-sm text-gray-600">Oportunidades</h2>
@@ -106,6 +119,22 @@ export default function Reportes() {
               </ul>
             )}
           </section>
+          </>
+          )}
+          {data.productividadDisponible && (
+            <div className="grid gap-4 sm:grid-cols-2">
+              <section className="bg-white border rounded-lg p-5">
+                <h2 className="text-sm text-gray-600">Tareas pendientes</h2>
+                <p className="text-3xl font-semibold mt-2">{tareasPendientes}</p>
+                <p className="text-xs text-gray-500 mt-2">Incluye tareas en progreso y vencidas.</p>
+              </section>
+              <section className="bg-white border rounded-lg p-5">
+                <h2 className="text-sm text-gray-600">Tareas vencidas</h2>
+                <p className="text-3xl font-semibold mt-2 text-red-700">{tareasVencidas}</p>
+                <p className="text-xs text-gray-500 mt-2">Forman parte del total de pendientes.</p>
+              </section>
+            </div>
+          )}
           <section className="bg-white border rounded-lg p-5 space-y-2">
             <h2 className="text-lg font-semibold">Tareas por agente</h2>
             {!data.productividadDisponible ? (
@@ -115,19 +144,37 @@ export default function Reportes() {
             ) : (
               <>
                 <p className="text-sm text-gray-600">Pendientes incluye tareas en progreso. Las vencidas forman parte de las pendientes.</p>
+                <figure className="py-4 space-y-4">
+                  <figcaption className="font-medium">Distribución de tareas por responsable</figcaption>
+                  <p className="text-sm text-gray-600">Azul: sin vencer. Rojo: vencidas. Las barras comparten la misma escala.</p>
+                  <ul className="space-y-4">
+                    {agentes.map(([id, agente]) => (
+                      <li key={id} className="space-y-1">
+                        <div className="flex flex-wrap justify-between gap-2 text-sm">
+                          <span className="break-words">{agente.nombre}</span>
+                          <span>{agente.pendientes - agente.vencidas} sin vencer · {agente.vencidas} vencidas</span>
+                        </div>
+                        <div aria-hidden="true" className="flex h-4 bg-gray-100 rounded-full overflow-hidden">
+                          <div className="bg-blue-600" style={{ width: `${(agente.pendientes - agente.vencidas) / maximoPendientes * 100}%` }} />
+                          <div className="bg-red-600" style={{ width: `${agente.vencidas / maximoPendientes * 100}%` }} />
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                </figure>
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm text-left">
-                    <caption className="sr-only">Tareas pendientes y vencidas por responsable del grupo seleccionado</caption>
+                    <caption className="sr-only">Tareas pendientes totales, sin vencer y vencidas por responsable del grupo seleccionado</caption>
                     <thead className="bg-gray-50 border-b">
-                      <tr><th scope="col" className="p-3">Responsable</th><th scope="col" className="p-3 text-right">Pendientes</th><th scope="col" className="p-3 text-right">Vencidas</th></tr>
+                      <tr><th scope="col" className="p-3">Responsable</th><th scope="col" className="p-3 text-right">Pendientes totales</th><th scope="col" className="p-3 text-right">Sin vencer</th><th scope="col" className="p-3 text-right">Vencidas</th></tr>
                     </thead>
                     <tbody>
-                      {Object.entries(data.productividad)
-                        .sort(([, a], [, b]) => a.nombre.localeCompare(b.nombre, 'es'))
+                      {agentes
                         .map(([id, agente]) => (
                           <tr key={id} className="border-b">
                             <th scope="row" className="p-3 font-medium">{agente.nombre}</th>
                             <td className="p-3 text-right">{agente.pendientes}</td>
+                            <td className="p-3 text-right">{agente.pendientes - agente.vencidas}</td>
                             <td className={`p-3 text-right ${agente.vencidas > 0 ? 'text-red-700 font-semibold' : ''}`}>{agente.vencidas}</td>
                           </tr>
                         ))}
