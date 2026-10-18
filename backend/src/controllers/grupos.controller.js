@@ -1,5 +1,5 @@
 import supabase from '../config/supabase.js';
-import { filtrarPorGrupos } from '../services/alcance.service.js';
+import { filtrarPorGrupos, listarAsignables } from '../services/alcance.service.js';
 
 // Las validaciones de formato (nombre obligatorio, longitud) viven en grupos.routes.js
 export const createGrupo = async (req, res) => {
@@ -104,5 +104,16 @@ export const listGruposConMiembros = async (req, res) => {
   } catch (error) {
     console.error('Error al listar grupos con miembros:', error);
     return res.status(500).json({ error: 'Error interno del servidor al listar los grupos' });
+  }
+};
+
+// Quién puede ser responsable o colaborador de oportunidades del grupo: sus miembros y los
+// administradores. Lo usan los formularios de oportunidades (HU 4.1).
+export const listAsignables = async (req, res) => {
+  try {
+    return res.json(await listarAsignables(req.params.id, req.company_id));
+  } catch (error) {
+    console.error('Error al listar asignables:', error);
+    return res.status(500).json({ error: 'Error interno del servidor al listar los usuarios del grupo' });
   }
 };

@@ -11,7 +11,7 @@ export async function obtenerOportunidadPorId(id) {
 }
 
 export async function crearOportunidad(datos) {
-  // datos: { nombre_oportunidad, contacto_id, valor_estimado, etapa, probabilidad }
+  // datos: { nombre_oportunidad, contacto_id, valor_estimado, etapa, probabilidad, fecha_cierre_prevista, responsable_id? }
   const { data } = await api.post('/oportunidades', datos);
   return data;
 }
@@ -23,5 +23,21 @@ export async function actualizarOportunidad(id, datos) {
 
 export async function eliminarOportunidad(id) {
   const { data } = await api.delete(`/oportunidades/${id}`);
+  return data;
+}
+
+// Colaboradores: otros usuarios del grupo que ayudan con la oportunidad (HU 4.1)
+export async function listarColaboradores(id) {
+  const { data } = await api.get(`/oportunidades/${id}/colaboradores`);
+  return data;
+}
+
+export async function agregarColaborador(id, userId) {
+  const { data } = await api.post(`/oportunidades/${id}/colaboradores`, { user_id: userId });
+  return data;
+}
+
+export async function quitarColaborador(id, userId) {
+  const { data } = await api.delete(`/oportunidades/${id}/colaboradores/${userId}`);
   return data;
 }

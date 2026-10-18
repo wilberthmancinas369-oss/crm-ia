@@ -1,4 +1,5 @@
 import supabase from '../config/supabase.js';
+import { NIVELES } from '../config/permisos.js';
 
 // Ayudantes para aplicar req.alcance (middleware autorizar) en las consultas del CRM.
 
@@ -49,3 +50,29 @@ async function buscarVisible(tabla, id, { companyId, alcance }) {
 
 export const buscarContactoVisible = (id, ambito) => buscarVisible('contactos', id, ambito);
 export const buscarOportunidadVisible = (id, ambito) => buscarVisible('oportunidades', id, ambito);
+
+/**
+ * Usuarios que pueden ser responsables o colaboradores de un registro del grupo:
+ * los miembros del grupo y los administradores de la empresa. [{ id, nombre, email }]
+ */
+export async function listarAsignables(grupoId, companyId, userId = null) {
+  let consulta = supabase
+    .from('user_group_role')
+    .select('user_id, group_id, profiles(id, full_name, email), roles(level)')
+    .eq('company_id', companyId);
+  if (userId) consulta = consulta.eq('user_id', userId);
+
+  const { data, error } = await consulta;
+  if (error) throw error;
+
+  const usuarios = new Map();
+  for (const a of data) {
+    if (a.group_id === grupoId || a.roles.level >= NIVELES.ADMINISTRADOR) {
+      usuarios.set(a.user_id, { id: a.user_id, nombre: a.profiles?.full_name ?? null, email: a.profiles?.email ?? null });
+    }
+  }
+  return [...usuarios.values()].sort((x, y) => (x.nombre || '').localeCompare(y.nombre || ''));
+}
+
+export const esAsignableEnGrupo = async (userId, grupoId, companyId) =>
+  (await listarAsignables(grupoId, companyId, userId)).length > 0;

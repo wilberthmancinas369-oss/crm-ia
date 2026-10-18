@@ -56,6 +56,10 @@ export const deleteContacto = async (req, res) => {
     }
     res.json({ message: 'Contacto eliminado correctamente' });
   } catch (error) {
+    // 23503: la base no deja borrar un contacto que todavía tiene oportunidades (HU 4.1)
+    if (error.code === '23503') {
+      return res.status(409).json({ error: 'Este contacto tiene oportunidades. Elimínalas antes de borrar el contacto.' });
+    }
     res.status(500).json({ error: error.message });
   }
 };

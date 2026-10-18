@@ -28,6 +28,7 @@ Niveles: **Agente = 0 · Jefe de Área = 1 · Administrador = 2**. Cada rol here
 | `gestionarInvitaciones` | Reenviar y cancelar invitaciones *(endpoint: HU-10)* | — | Su grupo | Todos |
 | `gestionarMiembros` | Cambiar rol y sacar miembros *(endpoint: HU-9)* | — | Su grupo, solo a **Agentes**, solo hacia **Agente** | Todos |
 | `verReporteGrupo` | Reporte del grupo *(endpoint: HU de reportes)* | — | Su grupo | Todos |
+| `asignarResponsable` | Asignar o reasignar el responsable y los colaboradores de cualquier oportunidad *(HU 4.1)* | — (solo las suyas) | Su grupo | Todos |
 | `crearGrupos` | Crear grupos | — | — | ✓ |
 | `eliminarGrupos` | Eliminar grupos *(endpoint pendiente)* | — | — | ✓ |
 | `verReporteGeneral` | Reporte general de la empresa *(endpoint: HU de reportes)* | — | — | ✓ |

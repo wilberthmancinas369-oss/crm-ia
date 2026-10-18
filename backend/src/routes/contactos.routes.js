@@ -1,5 +1,7 @@
 import { Router } from 'express';
 import { body } from 'express-validator';
+import validator from 'validator';
+import { REDES_SOCIALES } from '../config/crm.js';
 import { validarCampos } from '../middlewares/validarCampos.js';
 import { autenticar } from '../middlewares/autenticar.js';
 import { autorizar } from '../middlewares/autorizarRol.js';
@@ -21,16 +23,31 @@ router.use(autenticar, autorizar('gestionarCRM'));
 router.get('/', getContactos);
 router.get('/:id', getContactoById);
 
+// redes_sociales: { linkedin, facebook, instagram, x, sitio_web } con URLs; los vacíos se descartan
+const validarRedes = (redes) => {
+  if (typeof redes !== 'object' || redes === null || Array.isArray(redes)) {
+    throw new Error('redes_sociales debe ser un objeto');
+  }
+  for (const [red, url] of Object.entries(redes)) {
+    if (!REDES_SOCIALES.includes(red)) throw new Error(`Red social no permitida: ${red}`);
+    if (url && !validator.isURL(String(url), { require_protocol: true })) {
+      throw new Error(`El enlace de ${red} debe ser una URL completa (https://...)`);
+    }
+  }
+  return true;
+};
+const limpiarRedes = (redes) =>
+  Object.fromEntries(Object.entries(redes).filter(([, url]) => url).map(([red, url]) => [red, String(url).trim()]));
+
 // Reglas de validación para reutilizar o aplicar en las peticiones
-// Reemplaza tus validaciones base en contactos.routes.js:
-// Reemplaza tus validaciones base en contactos.routes.js:
 const validacionesBase = [
   body('grupo_id').optional({ values: 'falsy' }).isUUID().withMessage('El grupo_id debe ser un UUID válido'),
   body('nombre').optional().notEmpty().withMessage('El nombre no puede estar vacío'),
   body('apellido').optional().isString().withMessage('El apellido debe ser texto'),
   body('email').optional({ checkFalsy: true }).isEmail().withMessage('Debe proporcionar un email válido'),
   body('telefono').optional().isString().withMessage('El teléfono debe ser texto'),
-  body('cargo').optional().isString().withMessage('El cargo debe ser texto'),
+  body('cargo').optional().isString().withMessage('El puesto debe ser texto'),
+  body('redes_sociales').optional().custom(validarRedes).customSanitizer(limpiarRedes),
   body('empresa_cliente').optional().isString().withMessage('El nombre de la empresa debe ser texto'),
   body('notas').optional().isString().withMessage('Las notas deben ser texto'),
 ];

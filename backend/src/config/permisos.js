@@ -18,6 +18,7 @@ export const PERMISOS = {
   gestionarInvitaciones: { nivel: NIVELES.JEFE_AREA,     alcance: 'grupo' },   // reenviar/cancelar (HU-10)
   gestionarMiembros:     { nivel: NIVELES.JEFE_AREA,     alcance: 'grupo' },   // cambiar rol, sacar (HU-9)
   verReporteGrupo:       { nivel: NIVELES.JEFE_AREA,     alcance: 'grupo' },
+  asignarResponsable:    { nivel: NIVELES.JEFE_AREA,     alcance: 'grupo' },   // responsable y colaboradores de oportunidades ajenas (HU 4.1)
   crearGrupos:           { nivel: NIVELES.ADMINISTRADOR, alcance: 'empresa' },
   eliminarGrupos:        { nivel: NIVELES.ADMINISTRADOR, alcance: 'empresa' },
   verReporteGeneral:     { nivel: NIVELES.ADMINISTRADOR, alcance: 'empresa' },

@@ -25,13 +25,19 @@ export const contactosService = {
         .from('contactos')
         .select(`
           *,
-          oportunidades (*),
-          interacciones (*)
+          oportunidades (
+            id, nombre_oportunidad, etapa, valor_estimado, fecha_cierre_prevista,
+            responsable:profiles!oportunidades_responsable_fk (id, full_name)
+          ),
+          interacciones (id, tipo, detalle, created_at, oportunidad_id)
         `)
         .eq('id', id)
         .eq('company_id', companyId),
       alcance
-    ).maybeSingle();
+    )
+      // Historial de interacciones: lo más reciente primero
+      .order('created_at', { referencedTable: 'interacciones', ascending: false })
+      .maybeSingle();
 
     if (error) throw error;
     return data;

@@ -25,3 +25,10 @@ export function useGruposPermitidos(permiso) {
   if (deEmpresa) return todos
   return perfil.grupos.filter((g) => alcance.includes(g.id)).map((g) => ({ id: g.id, nombre: g.nombre }))
 }
+
+// ¿La cuenta tiene el permiso en este grupo? Usa perfil.alcances (null = toda la empresa)
+export function tienePermisoEnGrupo(perfil, permiso, grupoId) {
+  const alcances = perfil?.alcances ?? {}
+  if (!(permiso in alcances)) return false
+  return alcances[permiso] === null || alcances[permiso].includes(grupoId)
+}

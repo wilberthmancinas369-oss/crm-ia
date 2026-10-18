@@ -15,3 +15,9 @@ export async function listarGruposConMiembros() {
   const { data } = await api.get('/grupos/miembros')
   return data
 }
+
+// Responsables y colaboradores posibles para oportunidades del grupo: sus miembros y los administradores
+export async function listarAsignables(grupoId) {
+  const { data } = await api.get(`/grupos/${grupoId}/asignables`)
+  return data
+}
