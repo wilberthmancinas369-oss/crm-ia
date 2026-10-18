@@ -8,6 +8,7 @@ export const NAV_ITEMS = [
   { to: '/app/oportunidades', label: 'Oportunidades', permiso: 'gestionarCRM' },
   { to: '/app/grupos', label: 'Grupos', permiso: 'verMiembros' },
   { to: '/app/grupos/invitar', label: 'Invitar usuario', permiso: 'invitarUsuarios' },
+  { to: '/app/reportes', label: 'Reportes', permiso: 'verReporteGrupo' },
 ]
 
 export default function Sidebar() {

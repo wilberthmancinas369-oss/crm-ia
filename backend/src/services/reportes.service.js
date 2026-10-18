@@ -1,60 +1,39 @@
 import supabase from '../config/supabase.js';
 
+const TAMANO_PAGINA = 500;
+
 export const reportesService = {
-  // Obtener el resumen ejecutivo para el Jefe de Área
-  async getResumenJefe(empresaId) {
-    // 1. Obtener Monto Total de Oportunidades
-    const { data: oportunidades, error: errOp } = await supabase
-      .from('oportunidades')
-      .select('valor, etapa')
-      .eq('empresa_id', empresaId);
+  async getResumenJefe({ companyId, groupId }) {
+    if (!companyId || !groupId) throw new Error('Empresa y grupo requeridos para el reporte');
+    let montoCentavos = 0;
+    let totalOportunidades = 0;
+    const distribucionEtapas = Object.create(null);
 
-    if (errOp) throw errOp;
-
-    // Calcular monto total y distribución por etapa en memoria
-    let montoTotal = 0;
-    const distribucionEtapas = {};
-
-    oportunidades.forEach(op => {
-      montoTotal += parseFloat(op.valor || 0);
-      const etapa = op.etapa || 'Sin Etapa';
-      distribucionEtapas[etapa] = (distribucionEtapas[etapa] || 0) + 1;
-    });
-
-    // 2. Obtener Tareas Pendientes y Vencidas por Agente
-    const { data: tareas, error: errTars } = await supabase
-      .from('tareas')
-      .select('usuario_id, estado, fecha_limite')
-      .eq('empresa_id', empresaId)
-      .neq('estado', 'Completada');
-
-    if (errTars) throw errTars;
-
-    const ahora = new Date().toISOString();
-    const productividadAgentes = {};
-
-    tareas.forEach(t => {
-      const userId = t.usuario_id;
-      if (!productividadAgentes[userId]) {
-        productividadAgentes[userId] = { pendientes: 0, vencidas: 0 };
+    // Pagina para no limitar los totales a la primera respuesta de Supabase.
+    for (let inicio = 0; ; inicio += TAMANO_PAGINA) {
+      const { data, error } = await supabase
+        .from('oportunidades')
+        .select('id, valor_estimado, etapa')
+        .eq('company_id', companyId)
+        .eq('group_id', groupId)
+        .order('id', { ascending: true })
+        .range(inicio, inicio + TAMANO_PAGINA - 1);
+      if (error) throw error;
+      for (const oportunidad of data) {
+        montoCentavos += Math.round(Number(oportunidad.valor_estimado ?? 0) * 100);
+        totalOportunidades++;
+        const etapa = oportunidad.etapa || 'Sin etapa';
+        distribucionEtapas[etapa] = (distribucionEtapas[etapa] ?? 0) + 1;
       }
-      
-      productividadAgentes[userId].pendientes++;
-      if (t.fecha_limite && t.fecha_limite < ahora) {
-        productividadAgentes[userId].vencidas++;
-      }
-    });
-
+      if (data.length < TAMANO_PAGINA) break;
+    }
     return {
-      // Resumen de Ventas
-      ventas: {
-        montoTotal,
-        distribucionEtapas
-      },
-      // Resumen de Productividad
-      productividad: productividadAgentes
+      grupo_id: groupId,
+      ventas: { montoTotal: montoCentavos / 100, totalOportunidades, distribucionEtapas },
+      // HU6 aún no define el modelo de tareas en este repositorio. No inventar su contrato
+      // ni confundir información no disponible con cero tareas pendientes.
+      productividad: null,
+      productividadDisponible: false
     };
   }
 };
-
-

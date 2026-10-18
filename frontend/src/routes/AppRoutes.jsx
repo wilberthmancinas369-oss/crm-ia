@@ -12,6 +12,7 @@ import Contactos from '../pages/Contactos'
 import Oportunidades from '../pages/Oportunidades'
 import Grupos from '../pages/Grupos'
 import InvitarUsuario from '../pages/InvitarUsuario'
+import Reportes from '../pages/Reportes'
 import Bienvenida from '../pages/Bienvenida'
 
 export default function AppRoutes() {
@@ -39,6 +40,9 @@ export default function AppRoutes() {
           </Route>
           <Route element={<RequierePermiso permiso="invitarUsuarios" />}>
             <Route path="grupos/invitar" element={<InvitarUsuario />} />
+          </Route>
+          <Route element={<RequierePermiso permiso="verReporteGrupo" />}>
+            <Route path="reportes" element={<Reportes />} />
           </Route>
         </Route>
       </Route>

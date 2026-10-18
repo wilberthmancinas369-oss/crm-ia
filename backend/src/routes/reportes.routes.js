@@ -1,11 +1,16 @@
-import express from 'express';
+import { Router } from 'express';
+import { query } from 'express-validator';
 import { getReporteJefe } from '../controllers/reportes.controller.js';
-import { autorizar } from '../middlewares/autorizarRol.js'; // <--- CORREGIDO AQUÍ
+import { autenticar } from '../middlewares/autenticar.js';
+import { autorizar } from '../middlewares/autorizarRol.js';
+import { validarCampos } from '../middlewares/validarCampos.js';
 
-const router = express.Router();
-
-// Utilizamos el middleware 'autorizar' del equipo para validar el permiso de ver reportes
-// El permiso 'ver_reportes' debe estar definido en config/permisos.js
-router.get('/jefe', autorizar('ver_//reportes'), getReporteJefe);
-
+const router = Router();
+router.get('/jefe',
+  autenticar,
+  autorizar('verReporteGrupo'),
+  query('grupo_id').optional().isUUID().withMessage('El grupo_id debe ser un UUID válido'),
+  validarCampos,
+  getReporteJefe
+);
 export default router;
