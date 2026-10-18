@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { body } from 'express-validator';
+import { body, param } from 'express-validator';
 import { validarCampos } from '../middlewares/validarCampos.js';
 import { autenticar } from '../middlewares/autenticar.js';
 import { autorizar } from '../middlewares/autorizarRol.js';
@@ -8,8 +8,12 @@ import {
   getOportunidadById,
   createOportunidad,
   updateOportunidad,
-  deleteOportunidad
+  deleteOportunidad,
+  getColaboradores,
+  addColaborador,
+  removeColaborador
 } from '../controllers/oportunidades.controller.js';
+import { ETAPAS } from '../config/crm.js';
 
 const router = Router();
 
@@ -22,21 +26,28 @@ router.get('/', getOportunidades);
 router.get('/:id', getOportunidadById);
 
 // Reglas de validación base
-const validacionesBase = [
-  body('grupo_id').optional({ values: 'falsy' }).isUUID().withMessage('El grupo_id debe ser un UUID válido'),
-  body('nombre_oportunidad').optional().notEmpty().withMessage('El nombre de la oportunidad no puede estar vacío'),
+// El grupo no se elige: la oportunidad toma el de su contacto (HU 4.1)
+export const validacionesBase = [
+  body('nombre_oportunidad').optional().trim().notEmpty().withMessage('El nombre de la oportunidad no puede estar vacío'),
   body('contacto_id').optional().isUUID().withMessage('El contacto_id debe ser un UUID válido'),
-  body('valor_estimado').optional({ values: 'falsy' }).isNumeric().withMessage('El valor estimado debe ser un número'),
-  body('etapa').optional().isString().withMessage('La etapa debe ser texto'),
-  body('probabilidad').optional().isInt({ min: 0, max: 100 }).withMessage('La probabilidad debe ser un entero entre 0 y 100'),
+  body('valor_estimado').optional({ values: 'falsy' }).isFloat({ min: 0 }).withMessage('El monto debe ser un número mayor o igual a 0'),
+  body('etapa').optional().isIn(ETAPAS).withMessage(`La etapa debe ser una de: ${ETAPAS.join(', ')}`),
+  body('probabilidad').optional({ values: 'falsy' }).isInt({ min: 0, max: 100 }).withMessage('La probabilidad debe ser un entero entre 0 y 100'),
+  body('fecha_cierre_prevista').optional({ values: 'falsy' }).isISO8601().withMessage('La fecha de cierre debe tener formato AAAA-MM-DD'),
+  body('responsable_id').optional({ values: 'null' }).isUUID().withMessage('El responsable debe ser un UUID válido'),
 ];
 
-// Creación (POST): Requiere obligatoriamente el nombre de la oportunidad
+// Creación (POST): nombre y contacto obligatorios
+export const validacionesCrear = [
+  body('nombre_oportunidad').trim().notEmpty().withMessage('El nombre de la oportunidad es obligatorio'),
+  body('contacto_id').notEmpty().withMessage('El contacto es obligatorio'),
+  ...validacionesBase
+];
+
 router.post(
   '/',
   [
-    body('nombre_oportunidad').notEmpty().withMessage('El nombre de la oportunidad es obligatorio'),
-    ...validacionesBase,
+    ...validacionesCrear,
     validarCampos
   ],
   createOportunidad
@@ -54,5 +65,18 @@ router.put(
 
 // Eliminación (DELETE)
 router.delete('/:id', deleteOportunidad);
+
+// Colaboradores: otros usuarios del grupo que ayudan con la oportunidad
+router.get('/:id/colaboradores', getColaboradores);
+router.post(
+  '/:id/colaboradores',
+  [body('user_id').isUUID().withMessage('Indica el usuario (user_id)'), validarCampos],
+  addColaborador
+);
+router.delete(
+  '/:id/colaboradores/:userId',
+  [param('userId').isUUID().withMessage('Usuario no válido'), validarCampos],
+  removeColaborador
+);
 
 export default router;

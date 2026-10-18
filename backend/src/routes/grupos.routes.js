@@ -4,7 +4,7 @@ import { validarCampos } from '../middlewares/validarCampos.js';
 import { autenticar } from '../middlewares/autenticar.js';
 import { autorizar } from '../middlewares/autorizarRol.js';
 import { autorizarGrupo } from '../middlewares/autorizarGrupo.js';
-import { createGrupo, listGrupos, listGruposConMiembros } from '../controllers/grupos.controller.js';
+import { createGrupo, listGrupos, listGruposConMiembros, listAsignables } from '../controllers/grupos.controller.js';
 import { invitarUsuario } from '../controllers/invitaciones.controller.js';
 
 const router = Router();
@@ -25,6 +25,9 @@ router.get('/', [autenticar, autorizar('verGrupos')], listGrupos);
 
 // Miembros e invitaciones pendientes de cada grupo (pantalla Grupos)
 router.get('/miembros', [autenticar, autorizar('verMiembros')], listGruposConMiembros);
+
+// Responsables y colaboradores posibles para oportunidades del grupo (cualquier miembro del CRM en ese grupo)
+router.get('/:id/asignables', [autenticar, autorizar('gestionarCRM'), autorizarGrupo('id')], listAsignables);
 
 router.post(
   '/',
