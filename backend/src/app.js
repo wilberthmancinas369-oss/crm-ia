@@ -12,6 +12,8 @@ import gruposRoutes from './routes/grupos.routes.js';
 import invitacionesRoutes from './routes/invitaciones.routes.js';
 import rolesRoutes from './routes/roles.routes.js';
 import reportesRoutes from './routes/reportes.routes.js';
+import tareasRoutes from './routes/tareas.routes.js';
+import { iniciarRecordatorios } from './services/recordatorios.service.js';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -29,6 +31,7 @@ app.use('/api/grupos', gruposRoutes);
 app.use('/api/invitaciones', invitacionesRoutes);
 app.use('/api/roles', rolesRoutes);
 app.use('/api/reportes', reportesRoutes);
+app.use('/api/tareas', tareasRoutes);
 
 // Ruta de prueba
 app.get('/', (req, res) => {
@@ -38,4 +41,5 @@ app.get('/', (req, res) => {
 // Iniciar servidor
 app.listen(PORT, () => {
   console.log(`Servidor corriendo en http://localhost:${PORT}`);
+  iniciarRecordatorios();
 });

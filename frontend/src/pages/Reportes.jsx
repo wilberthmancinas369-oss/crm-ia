@@ -108,7 +108,34 @@ export default function Reportes() {
           </section>
           <section className="bg-white border rounded-lg p-5 space-y-2">
             <h2 className="text-lg font-semibold">Tareas por agente</h2>
-            <p className="text-gray-600">La información de tareas pendientes y vencidas aún no está disponible.</p>
+            {!data.productividadDisponible ? (
+              <p className="text-gray-600">La información de tareas pendientes y vencidas aún no está disponible.</p>
+            ) : Object.keys(data.productividad).length === 0 ? (
+              <p className="text-gray-600">No hay tareas pendientes en este grupo.</p>
+            ) : (
+              <>
+                <p className="text-sm text-gray-600">Pendientes incluye tareas en progreso. Las vencidas forman parte de las pendientes.</p>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm text-left">
+                    <caption className="sr-only">Tareas pendientes y vencidas por responsable del grupo seleccionado</caption>
+                    <thead className="bg-gray-50 border-b">
+                      <tr><th scope="col" className="p-3">Responsable</th><th scope="col" className="p-3 text-right">Pendientes</th><th scope="col" className="p-3 text-right">Vencidas</th></tr>
+                    </thead>
+                    <tbody>
+                      {Object.entries(data.productividad)
+                        .sort(([, a], [, b]) => a.nombre.localeCompare(b.nombre, 'es'))
+                        .map(([id, agente]) => (
+                          <tr key={id} className="border-b">
+                            <th scope="row" className="p-3 font-medium">{agente.nombre}</th>
+                            <td className="p-3 text-right">{agente.pendientes}</td>
+                            <td className={`p-3 text-right ${agente.vencidas > 0 ? 'text-red-700 font-semibold' : ''}`}>{agente.vencidas}</td>
+                          </tr>
+                        ))}
+                    </tbody>
+                  </table>
+                </div>
+              </>
+            )}
           </section>
         </>
       )}

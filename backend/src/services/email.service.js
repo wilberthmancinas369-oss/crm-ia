@@ -10,12 +10,16 @@ import { Resend } from 'resend';
 // y new Resend() lanza error sin API key, lo que tumbaría todo el servidor al arrancar
 let resend;
 const getResend = () => (resend ??= new Resend(process.env.RESEND_API_KEY));
+const escaparHtml = (valor) => String(valor).replace(/[&<>"']/g, (caracter) => ({
+  '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+}[caracter]));
 
 // Cada proveedor recibe { to, subject, html } y lanza un Error con el motivo si falla
 const proveedores = {
   async brevo({ to, subject, html }) {
     const respuesta = await fetch('https://api.brevo.com/v3/smtp/email', {
       method: 'POST',
+      signal: AbortSignal.timeout(15000),
       headers: { 'api-key': process.env.BREVO_API_KEY, 'Content-Type': 'application/json' },
       body: JSON.stringify({
         sender: { email: process.env.BREVO_SENDER_EMAIL, name: process.env.BREVO_SENDER_NAME || 'CRM con IA' },
@@ -47,6 +51,42 @@ const proveedores = {
 const proveedorActivo = () => (process.env.BREVO_API_KEY ? 'brevo' : 'resend');
 
 export const emailService = {
+  async sendTaskReminder(to, titulo, fechaLimite) {
+    if (!process.env.BREVO_API_KEY || !process.env.BREVO_SENDER_EMAIL) {
+      return { success: false, error: 'Configura BREVO_API_KEY y BREVO_SENDER_EMAIL para los recordatorios' };
+    }
+    try {
+      const data = await proveedores.brevo({
+        to,
+        subject: `Recordatorio de vencimiento: ${titulo}`,
+        html: this.getTaskReminderTemplate(titulo, fechaLimite)
+      });
+      return { success: true, data };
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  },
+
+  getTaskReminderTemplate(titulo, fechaLimite) {
+    const zona = process.env.RECORDATORIOS_ZONA_HORARIA || 'America/Tijuana';
+    const fecha = new Date(fechaLimite).toLocaleString('es-MX', {
+      timeZone: zona, dateStyle: 'long', timeStyle: 'short'
+    });
+    const link = `${(process.env.FRONTEND_URL || 'http://localhost:5173').replace(/\/$/, '')}/app/tareas`;
+    return `
+      <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; border: 1px solid #dfe2ea; border-radius: 8px; color: #1b1f2e; background: #ffffff;">
+        <h2 style="color: #1f2a5c;">Tu tarea está por vencer</h2>
+        <p>Tienes una tarea asignada que vence en las próximas 24 horas:</p>
+        <p style="font-size: 18px;"><strong>${escaparHtml(titulo)}</strong></p>
+        <p style="color: #5b6275;">Fecha límite: ${escaparHtml(fecha)} (${escaparHtml(zona)}).</p>
+        <div style="text-align: center; margin: 28px 0;">
+          <a href="${escaparHtml(link)}" style="display: inline-block; background: #1f2a5c; color: #ffffff; padding: 12px 24px; text-decoration: none; border-radius: 8px;">Ver mis tareas</a>
+        </div>
+        <p style="color: #5b6275; font-size: 12px;">CRM con IA · Recordatorio de vencimiento</p>
+      </div>
+    `;
+  },
+
   /**
    * Envía un correo electrónico de invitación transaccional.
    * @param {string} to - Destinatario del correo electrónico.
