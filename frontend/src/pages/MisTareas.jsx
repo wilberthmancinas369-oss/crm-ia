@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useAuth } from '../context/AuthContext';
-import { listarMisTareas, crearTarea } from '../services/tareas';
+import { listarMisTareas, crearTarea, actualizarTarea, completarTarea } from '../services/tareas';
 import { listarContactos } from '../services/contactos';
 import { listarOportunidades } from '../services/oportunidades';
 import ErrorMessage from '../components/ErrorMessage';
@@ -24,6 +24,7 @@ export default function MisTareas() {
   const [errorCarga, setErrorCarga] = useState('');
   const [mensaje, setMensaje] = useState(null);
   const [intento, setIntento] = useState(0);
+  const [procesando, setProcesando] = useState(null); // id de la tarea que se está guardando
   const { register, handleSubmit, reset, watch, setValue, formState: { errors, isSubmitting } } = useForm({
     defaultValues: { titulo: '', fecha_limite: '', tipoVinculo: 'contacto', vinculo_id: '' }
   });
@@ -71,13 +72,34 @@ export default function MisTareas() {
     }
   };
 
+  // Reemplaza la tarea en la lista conservando los nombres del vínculo, que la respuesta no trae
+  const guardarCambio = async (tarea, accion, textoError) => {
+    setMensaje(null);
+    setProcesando(tarea.id);
+    try {
+      const actualizada = await accion();
+      setTareas((actuales) => actuales.map((t) => (t.id === tarea.id
+        ? { ...actualizada, contactos: tarea.contactos, oportunidades: tarea.oportunidades }
+        : t)));
+    } catch (error) {
+      setMensaje({ tipo: 'error', texto: mensajeError(error, textoError) });
+    } finally {
+      setProcesando(null);
+    }
+  };
+
+  const cambiarEstado = (tarea, estado) =>
+    guardarCambio(tarea, () => actualizarTarea(tarea.id, { estado }), 'No se pudo cambiar el estado de la tarea.');
+  const completar = (tarea) =>
+    guardarCambio(tarea, () => completarTarea(tarea.id), 'No se pudo completar la tarea.');
+
   const vinculos = tipoVinculo === 'contacto' ? contactos : oportunidades;
 
   return (
     <div className="p-4 sm:p-6 max-w-7xl mx-auto space-y-6">
       <div className="border-b pb-4 border-gray-200">
         <h1 className="text-2xl font-bold text-gray-800">Mis tareas</h1>
-        <p className="text-sm text-gray-500 mt-1">Consulta y crea las tareas que tienes asignadas.</p>
+        <p className="text-sm text-gray-500 mt-1">Consulta, crea y completa las tareas que tienes asignadas.</p>
       </div>
 
       {cargando ? <p role="status" className="text-sm text-gray-500">Cargando tareas...</p> : errorCarga ? (
@@ -151,7 +173,23 @@ export default function MisTareas() {
                         : `Oportunidad: ${tarea.oportunidades?.nombre_oportunidad || ''}`}</p>
                       <p className="text-sm text-gray-500">Fecha límite: <time dateTime={tarea.fecha_limite}>{new Date(tarea.fecha_limite).toLocaleString('es-MX', { dateStyle: 'medium', timeStyle: 'short' })}</time></p>
                     </div>
-                    <span className={`self-start sm:self-center shrink-0 px-2 py-1 rounded-full text-xs font-medium ${colorEstado[tarea.estado] || 'bg-gray-100 text-gray-700'}`}>{tarea.estado}</span>
+                    <div className="flex flex-wrap items-center gap-2 shrink-0">
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${colorEstado[tarea.estado] || 'bg-gray-100 text-gray-700'}`}>{tarea.estado}</span>
+                      {tarea.estado !== 'Completada' && (
+                        <>
+                          <select aria-label={`Estado de ${tarea.titulo}`} className="border border-gray-300 rounded-md p-1 text-xs"
+                            value={tarea.estado} disabled={procesando === tarea.id}
+                            onChange={(e) => cambiarEstado(tarea, e.target.value)}>
+                            <option value="Pendiente">Pendiente</option>
+                            <option value="En progreso">En progreso</option>
+                          </select>
+                          <button type="button" className="btn text-xs disabled:opacity-60" disabled={procesando === tarea.id}
+                            onClick={() => completar(tarea)}>
+                            {procesando === tarea.id ? 'Guardando...' : 'Completar'}
+                          </button>
+                        </>
+                      )}
+                    </div>
                   </li>
                 ))}
               </ul>

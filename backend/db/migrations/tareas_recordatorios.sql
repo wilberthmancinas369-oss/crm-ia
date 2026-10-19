@@ -5,8 +5,13 @@
 BEGIN;
 
 -- Permite validar que el responsable pertenezca a la misma empresa que la tarea.
-ALTER TABLE public.profiles
-    ADD CONSTRAINT profiles_id_company_id_key UNIQUE (id, company_id);
+-- (Dentro de DO para poder correr el script otra vez sin error.)
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'profiles_id_company_id_key') THEN
+    ALTER TABLE public.profiles ADD CONSTRAINT profiles_id_company_id_key UNIQUE (id, company_id);
+  END IF;
+END $$;
 
 CREATE TABLE IF NOT EXISTS public.tareas (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -35,6 +40,7 @@ CREATE TABLE IF NOT EXISTS public.tareas (
 -- Mismo aislamiento por empresa que los modelos actuales del CRM.
 ALTER TABLE public.tareas ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Usuarios gestionan tareas de su empresa" ON public.tareas;
 CREATE POLICY "Usuarios gestionan tareas de su empresa"
 ON public.tareas FOR ALL
 USING (company_id = public.get_my_company_id())

@@ -1,5 +1,6 @@
 import { tareasService } from '../services/tareas.service.js';
-import { ambitoDe, buscarContactoVisible, buscarOportunidadVisible } from '../services/alcance.service.js';
+import { ambitoDe, buscarContactoVisible, buscarOportunidadVisible, esAsignableEnGrupo } from '../services/alcance.service.js';
+import { puedeEnGrupo } from '../config/permisos.js';
 
 export const getMisTareas = async (req, res) => {
   try {
@@ -17,7 +18,10 @@ const camposTarea = (body) => {
   return datos;
 };
 
-async function validarRelaciones(tarea, ambito) {
+// La tarea toma el grupo de su vínculo. Igual que en las oportunidades (HU 4.1), el responsable debe
+// ser del grupo (o administrador) para que la vea en "Mis tareas", y asignarla a otra persona
+// requiere asignarResponsable (Jefe de Área del grupo o Administrador).
+async function validarRelaciones(req, tarea, ambito, responsableActual) {
   if (Boolean(tarea.contacto_id) === Boolean(tarea.oportunidad_id)) {
     return { status: 400, error: 'La tarea debe estar ligada a un contacto o una oportunidad, solo uno' };
   }
@@ -28,6 +32,13 @@ async function validarRelaciones(tarea, ambito) {
   if (!(await tareasService.responsableExiste(tarea.responsable_id, ambito))) {
     return { status: 400, error: 'El responsable debe pertenecer a tu empresa' };
   }
+  const asignaAOtro = tarea.responsable_id !== req.perfil.usuario.id && tarea.responsable_id !== responsableActual;
+  if (asignaAOtro && !puedeEnGrupo(req.perfil, 'asignarResponsable', vinculo.group_id)) {
+    return { status: 403, error: 'Solo el Jefe de Área o el Administrador pueden asignar tareas a otra persona' };
+  }
+  if (!(await esAsignableEnGrupo(tarea.responsable_id, vinculo.group_id, ambito.companyId))) {
+    return { status: 400, error: 'El responsable debe pertenecer al grupo del contacto u oportunidad' };
+  }
   return null;
 }
 
@@ -35,7 +46,7 @@ export const createTarea = async (req, res) => {
   try {
     const ambito = ambitoDe(req);
     const datos = camposTarea(req.body);
-    const invalido = await validarRelaciones(datos, ambito);
+    const invalido = await validarRelaciones(req, datos, ambito);
     if (invalido) return res.status(invalido.status).json({ error: invalido.error });
     const tarea = await tareasService.create({ estado: 'Pendiente', ...datos }, ambito);
     res.status(201).json(tarea);
@@ -51,7 +62,7 @@ export const updateTarea = async (req, res) => {
     if (!actual) return res.status(404).json({ error: 'Tarea no encontrada' });
     const datos = camposTarea(req.body);
     if (!Object.keys(datos).length) return res.status(400).json({ error: 'Indica al menos un campo de la tarea' });
-    const invalido = await validarRelaciones({ ...actual, ...datos }, ambito);
+    const invalido = await validarRelaciones(req, { ...actual, ...datos }, ambito, actual.responsable_id);
     if (invalido) return res.status(invalido.status).json({ error: invalido.error });
     if ((datos.fecha_limite !== undefined && new Date(datos.fecha_limite).getTime() !== new Date(actual.fecha_limite).getTime())
       || (datos.responsable_id !== undefined && datos.responsable_id !== actual.responsable_id)) {

@@ -41,7 +41,8 @@ beforeEach(() => {
     profiles: [{ id: ids.responsable, company_id: 'empresa-1' }],
     contactos: [{ id: ids.contacto, company_id: 'empresa-1', group_id: 'grupo-1' }],
     oportunidades: [{ id: ids.oportunidad, company_id: 'empresa-1', group_id: 'grupo-1' }],
-    tareas: [{ id: ids.tarea, company_id: 'empresa-1', ...nuevaTarea(), estado: 'Pendiente' }]
+    tareas: [{ id: ids.tarea, company_id: 'empresa-1', ...nuevaTarea(), estado: 'Pendiente' }],
+    user_group_role: [{ user_id: ids.responsable, group_id: 'grupo-1', company_id: 'empresa-1', roles: { level: 0 } }]
   };
   supabase.from = supabaseFalso(tablas);
   supabase.auth.getUser = async () => ({ data: { user: { id: ids.responsable } }, error: null });
@@ -104,6 +105,21 @@ test('exige título, fecha y responsable al crear', async () => {
 test('rechaza un responsable de otra empresa', async () => {
   tablas.profiles[0].company_id = 'empresa-2';
   assert.equal((await pedir('POST', '', nuevaTarea())).status, 400);
+});
+
+test('un Agente no asigna tareas a otra persona y el responsable debe ser del grupo', async () => {
+  tablas.profiles.push({ id: ids.otro, company_id: 'empresa-1' });
+  const aOtro = await pedir('POST', '', { ...nuevaTarea(), responsable_id: ids.otro });
+  assert.equal(aOtro.status, 403);
+  perfilService.obtener = async () => ({
+    usuario: { id: ids.responsable }, empresa: { id: 'empresa-1' }, grupos: [{ id: 'grupo-1', nivel: 1 }]
+  });
+  // El Jefe sí puede asignar, pero solo a alguien del grupo del contacto
+  const fueraDelGrupo = await pedir('POST', '', { ...nuevaTarea(), responsable_id: ids.otro });
+  assert.equal(fueraDelGrupo.status, 400);
+  tablas.user_group_role.push({ user_id: ids.otro, group_id: 'grupo-1', company_id: 'empresa-1', roles: { level: 0 } });
+  assert.equal((await pedir('POST', '', { ...nuevaTarea(), responsable_id: ids.otro })).status, 201);
+  assert.equal(tablas.tareas.length, 2);
 });
 
 test('no permite crear con un contacto fuera del grupo', async () => {
@@ -230,6 +246,11 @@ test('editar fecha o responsable reinicia el recordatorio; otros cambios conserv
   assert.equal(editarFecha.body.recordatorio_enviado_at, null);
   tablas.tareas[0].recordatorio_enviado_at = '2026-10-19T10:00:00Z';
   tablas.profiles.push({ id: ids.otro, company_id: 'empresa-1' });
+  tablas.user_group_role.push({ user_id: ids.otro, group_id: 'grupo-1', company_id: 'empresa-1', roles: { level: 0 } });
+  // Reasignar a otra persona es del Jefe de Área del grupo
+  perfilService.obtener = async () => ({
+    usuario: { id: ids.responsable }, empresa: { id: 'empresa-1' }, grupos: [{ id: 'grupo-1', nivel: 1 }]
+  });
   const reasignar = await pedir('PUT', `/${ids.tarea}`, { responsable_id: ids.otro });
   assert.equal(reasignar.status, 200);
   assert.equal(reasignar.body.recordatorio_enviado_at, null);
