@@ -26,6 +26,16 @@ export async function eliminarOportunidad(id) {
   return data;
 }
 
+export async function reasignarOportunidad(id, responsable_id) {
+  const { data } = await api.patch(`/oportunidades/${id}/reasignar`, { responsable_id });
+  return data;
+}
+
+export async function obtenerHistorialReasignaciones(id) {
+  const { data } = await api.get(`/oportunidades/${id}/reasignaciones`);
+  return data;
+}
+
 // Colaboradores: otros usuarios del grupo que ayudan con la oportunidad (HU 4.1)
 export async function listarColaboradores(id) {
   const { data } = await api.get(`/oportunidades/${id}/colaboradores`);

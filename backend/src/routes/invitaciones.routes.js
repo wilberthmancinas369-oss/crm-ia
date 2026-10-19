@@ -1,7 +1,9 @@
 import { Router } from 'express';
 import { body, param } from 'express-validator';
 import { validarCampos } from '../middlewares/validarCampos.js';
-import { obtenerInvitacion, aceptarInvitacion } from '../controllers/invitaciones.controller.js';
+import { obtenerInvitacion, aceptarInvitacion, reenviarInvitacion, cancelarInvitacion } from '../controllers/invitaciones.controller.js';
+import { autenticar } from '../middlewares/autenticar.js';
+import { autorizar } from '../middlewares/autorizarRol.js';
 
 const router = Router();
 
@@ -19,7 +21,11 @@ export const validacionesAceptar = [
 ];
 
 router.get('/:token', [validarToken, validarCampos], obtenerInvitacion);
-
 router.post('/:token/aceptar', [validarToken, ...validacionesAceptar, validarCampos], aceptarInvitacion);
+
+// Rutas administrativas (requieren autenticación y permisos)
+const validarId = param('id').isUUID().withMessage('El id de la invitación debe ser un UUID válido');
+router.post('/:id/reenviar', [autenticar, autorizar('gestionarInvitaciones'), validarId, validarCampos], reenviarInvitacion);
+router.post('/:id/cancelar', [autenticar, autorizar('gestionarInvitaciones'), validarId, validarCampos], cancelarInvitacion);
 
 export default router;

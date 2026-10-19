@@ -12,8 +12,12 @@ import Contactos from '../pages/Contactos'
 import Oportunidades from '../pages/Oportunidades'
 import Grupos from '../pages/Grupos'
 import InvitarUsuario from '../pages/InvitarUsuario'
+import Reportes from '../pages/Reportes'
 import Bienvenida from '../pages/Bienvenida'
 import Pipeline from '../pages/Pipeline'
+import MisTareas from '../pages/MisTareas'
+import ReporteGeneral from '../pages/ReporteGeneral'
+import AdminUsuarios from '../pages/AdministracionUsuarios'
 
 export default function AppRoutes() {
   return (
@@ -35,12 +39,22 @@ export default function AppRoutes() {
             <Route path="contactos" element={<Contactos />} />
             <Route path="oportunidades" element={<Oportunidades />} />
             <Route path="pipeline" element={<Pipeline />} />
+            <Route path="tareas" element={<MisTareas />} />
           </Route>
           <Route element={<RequierePermiso permiso="verMiembros" />}>
             <Route path="grupos" element={<Grupos />} />
           </Route>
           <Route element={<RequierePermiso permiso="invitarUsuarios" />}>
             <Route path="grupos/invitar" element={<InvitarUsuario />} />
+          </Route>
+          <Route element={<RequierePermiso permiso="gestionarMiembros" />}>
+            <Route path="usuarios" element={<AdminUsuarios />} />
+          </Route>
+          <Route element={<RequierePermiso permiso="verReporteGrupo" />}>
+            <Route path="reportes" element={<Reportes />} />
+          </Route>
+          <Route element={<RequierePermiso permiso="verReporteGeneral" />}>
+            <Route path="reportes/general" element={<ReporteGeneral />} />
           </Route>
         </Route>
       </Route>

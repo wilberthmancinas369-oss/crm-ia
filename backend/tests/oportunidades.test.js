@@ -48,13 +48,29 @@ const datosIniciales = () => ({
   oportunidades: [
     { id: 'oAna', nombre_oportunidad: 'Venta de Ana', contacto_id: 'kVentas', group_id: 'g1', company_id: 'c1', responsable_id: 'ana', etapa: 'Propuesta' }
   ],
-  oportunidad_colaboradores: []
+  oportunidad_colaboradores: [],
+  oportunidad_reasignaciones: []
 });
+
+// Simula la función reasignar_oportunidad (hu7_historial_reasignaciones.sql): cambia el
+// responsable y deja el registro en el historial
+const rpcFalso = (db) => async (funcion, p) => {
+  assert.equal(funcion, 'reasignar_oportunidad');
+  const oportunidad = db.oportunidades.find((o) => o.id === p.p_oportunidad_id && o.company_id === p.p_company_id);
+  const anterior = oportunidad.responsable_id;
+  oportunidad.responsable_id = p.p_nuevo_responsable_id;
+  db.oportunidad_reasignaciones.push({
+    id: crypto.randomUUID(), company_id: p.p_company_id, oportunidad_id: oportunidad.id,
+    responsable_anterior_id: anterior, responsable_nuevo_id: p.p_nuevo_responsable_id, reasignado_por: p.p_reasignado_por
+  });
+  return { data: [{ responsable_anterior: anterior, responsable_nuevo: p.p_nuevo_responsable_id }], error: null };
+};
 
 let db;
 beforeEach(() => {
   db = datosIniciales();
   supabase.from = supabaseFalso(db);
+  supabase.rpc = rpcFalso(db);
 });
 
 const mockRes = () => ({
@@ -136,10 +152,11 @@ describe('Responsable de la oportunidad', () => {
     assert.equal(db.oportunidades[0].responsable_id, 'ana');
   });
 
-  test('el Jefe de Área reasigna a un miembro de su grupo', async () => {
+  test('el Jefe de Área reasigna a un miembro de su grupo y queda en el historial (HU-7)', async () => {
     const res = await peticion(JEFE, op.updateOportunidad, { params: { id: 'oAna' }, body: { responsable_id: 'beto' } });
     assert.equal(res.statusCode, 200);
     assert.equal(db.oportunidades[0].responsable_id, 'beto');
+    assert.equal(db.oportunidad_reasignaciones.length, 1);
   });
 
   test('el responsable debe ser del grupo de la oportunidad', async () => {
@@ -151,6 +168,50 @@ describe('Responsable de la oportunidad', () => {
     const res = await peticion(BETO, op.updateOportunidad, { params: { id: 'oAna' }, body: { etapa: 'Ganada' } });
     assert.equal(res.statusCode, 200);
     assert.equal(db.oportunidades[0].etapa, 'Ganada');
+  });
+});
+
+describe('HU-7: reasignar cliente', () => {
+  const reasignar = (perfil, responsable_id) =>
+    peticion(perfil, op.reasignarOportunidad, { params: { id: 'oAna' }, body: { responsable_id } });
+
+  test('el Jefe de Área reasigna y se registra quién lo hizo', async () => {
+    const res = await reasignar(JEFE, 'beto');
+    assert.equal(res.statusCode, 200);
+    assert.equal(db.oportunidades[0].responsable_id, 'beto');
+    assert.deepEqual(
+      db.oportunidad_reasignaciones.map(({ responsable_anterior_id, responsable_nuevo_id, reasignado_por }) =>
+        ({ responsable_anterior_id, responsable_nuevo_id, reasignado_por })),
+      [{ responsable_anterior_id: 'ana', responsable_nuevo_id: 'beto', reasignado_por: 'jefe' }]
+    );
+  });
+
+  test('un Agente no puede reasignar, ni siendo el responsable', async () => {
+    const res = await reasignar(ANA, 'beto');
+    assert.equal(res.statusCode, 403);
+    assert.equal(db.oportunidad_reasignaciones.length, 0);
+  });
+
+  test('el destino debe ser distinto al responsable actual', async () => {
+    assert.equal((await reasignar(JEFE, 'ana')).statusCode, 400);
+  });
+
+  test('el destino debe ser del grupo de la oportunidad', async () => {
+    assert.equal((await reasignar(JEFE, 'otro')).statusCode, 400);
+    assert.equal(db.oportunidades[0].responsable_id, 'ana');
+  });
+
+  test('una oportunidad fuera de su alcance responde 404', async () => {
+    const res = await peticion(perfilDe('jefe2', [['g2', NIVELES.JEFE_AREA]]), op.reasignarOportunidad,
+      { params: { id: 'oAna' }, body: { responsable_id: 'otro' } });
+    assert.equal(res.statusCode, 404);
+  });
+
+  test('el historial solo muestra oportunidades visibles', async () => {
+    await reasignar(JEFE, 'beto');
+    assert.equal((await peticion(BETO, op.getHistorialReasignaciones, { params: { id: 'oAna' } })).statusCode, 200);
+    const ajeno = await peticion(perfilDe('otro', [['g2', NIVELES.AGENTE]]), op.getHistorialReasignaciones, { params: { id: 'oAna' } });
+    assert.equal(ajeno.statusCode, 404);
   });
 });
 

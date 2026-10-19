@@ -1,7 +1,7 @@
 import crypto from 'crypto';
 import supabase from '../config/supabase.js';
 import { emailService } from '../services/email.service.js';
-import { rolMaximoAsignable } from '../config/permisos.js';
+import { puedeEnGrupo, rolMaximoAsignable } from '../config/permisos.js';
 
 // Busca una invitación por token con los nombres de empresa, grupo y rol.
 // Devuelve { invitacion } si se puede aceptar, o { status, error } si no.
@@ -20,6 +20,10 @@ async function buscarInvitacionVigente(token) {
 
   if (invitacion.status === 'aceptada') {
     return { status: 409, error: 'Esta invitación ya fue aceptada. Inicia sesión con tu cuenta.' };
+  }
+
+  if (invitacion.status === 'cancelada') {
+    return { status: 410, error: 'Esta invitación fue cancelada. Pide a quien te invitó que te envíe una nueva.' };
   }
 
   if (invitacion.status === 'expirada' || new Date() > new Date(invitacion.expires_at)) {
@@ -225,6 +229,85 @@ export const invitarUsuario = async (req, res) => {
     });
   } catch (error) {
     console.error('Error al invitar usuario:', error);
-    return res.status(500).json({ error: 'Error interno del servidor al procesar la invitación' });
+    return res.status(500).json({ error: 'Error interno al procesar la invitación' });
+  }
+};
+
+// HU-9/HU-10: reenviar o cancelar una invitación. Solo las que siguen pendientes (o vencidas) y solo
+// en grupos donde se tiene gestionarInvitaciones (Jefe de Área de ese grupo o Administrador).
+async function buscarInvitacionGestionable(req) {
+  const { data: invitacion, error } = await supabase
+    .from('invitations')
+    .select('id, email, status, expires_at, group_id, groups(name), roles(name)')
+    .eq('id', req.params.id)
+    .eq('company_id', req.company_id)
+    .maybeSingle();
+
+  if (error) throw error;
+  if (!invitacion) return { status: 404, error: 'Invitación no encontrada' };
+  if (!puedeEnGrupo(req.perfil, 'gestionarInvitaciones', invitacion.group_id)) {
+    return { status: 403, error: 'Solo puedes gestionar invitaciones de los grupos que diriges' };
+  }
+  if (!['pendiente', 'expirada', 'fallida'].includes(invitacion.status)) {
+    return { status: 409, error: `La invitación ya está ${invitacion.status}` };
+  }
+  return { invitacion };
+}
+
+// POST /api/invitaciones/:id/reenviar — nuevo enlace por 7 días; el anterior deja de servir
+export const reenviarInvitacion = async (req, res) => {
+  try {
+    const { invitacion, status, error } = await buscarInvitacionGestionable(req);
+    if (!invitacion) return res.status(status).json({ error });
+
+    const token = crypto.randomBytes(32).toString('hex');
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + 7);
+
+    const { error: updateError } = await supabase
+      .from('invitations')
+      .update({ token, expires_at: expiresAt.toISOString(), status: 'pendiente' })
+      .eq('id', invitacion.id)
+      .eq('company_id', req.company_id);
+
+    // idx_invitations_pendiente_unica: ya hay otra invitación pendiente para ese correo
+    if (updateError?.code === '23505') {
+      return res.status(409).json({ error: 'Ya existe otra invitación pendiente para este correo' });
+    }
+    if (updateError) throw updateError;
+
+    const emailResult = await emailService.sendInvitation(invitacion.email, token, invitacion.groups.name, invitacion.roles.name);
+    if (!emailResult.success) {
+      await supabase.from('invitations').update({ status: 'fallida' }).eq('id', invitacion.id);
+      return res.status(502).json({
+        error: 'No se pudo enviar el correo de la invitación. Intenta reenviarla más tarde.',
+        detail: emailResult.error
+      });
+    }
+
+    return res.json({ message: 'Invitación reenviada exitosamente' });
+  } catch (error) {
+    console.error('Error al reenviar invitación:', error);
+    return res.status(500).json({ error: 'Error interno al reenviar la invitación' });
+  }
+};
+
+// POST /api/invitaciones/:id/cancelar — el enlace deja de servir (requiere hu9_invitaciones_canceladas.sql)
+export const cancelarInvitacion = async (req, res) => {
+  try {
+    const { invitacion, status, error } = await buscarInvitacionGestionable(req);
+    if (!invitacion) return res.status(status).json({ error });
+
+    const { error: updateError } = await supabase
+      .from('invitations')
+      .update({ status: 'cancelada' })
+      .eq('id', invitacion.id)
+      .eq('company_id', req.company_id);
+
+    if (updateError) throw updateError;
+    return res.json({ message: 'Invitación cancelada exitosamente' });
+  } catch (error) {
+    console.error('Error al cancelar invitación:', error);
+    return res.status(500).json({ error: 'Error interno al cancelar la invitación' });
   }
 };

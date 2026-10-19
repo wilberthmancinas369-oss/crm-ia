@@ -25,14 +25,14 @@ Niveles: **Agente = 0 · Jefe de Área = 1 · Administrador = 2**. Cada rol here
 | `verGrupos` | Listar grupos | Los suyos | Los suyos | Todos |
 | `verMiembros` | Ver miembros e invitaciones pendientes | — | Su grupo | Todos |
 | `invitarUsuarios` | Invitar usuarios a un grupo | — | Su grupo, solo como **Agente** | Cualquier grupo, como Agente o Jefe de Área |
-| `gestionarInvitaciones` | Reenviar y cancelar invitaciones *(endpoint: HU-10)* | — | Su grupo | Todos |
-| `gestionarMiembros` | Cambiar rol y sacar miembros *(endpoint: HU-9)* | — | Su grupo, solo a **Agentes**, solo hacia **Agente** | Todos |
-| `verReporteGrupo` | Reporte del grupo *(endpoint: HU de reportes)* | — | Su grupo | Todos |
-| `asignarResponsable` | Asignar o reasignar el responsable y los colaboradores de cualquier oportunidad *(HU 4.1)* | — (solo las suyas) | Su grupo | Todos |
+| `gestionarInvitaciones` | Reenviar y cancelar invitaciones (`POST /api/invitaciones/:id/reenviar` y `/cancelar`) | — | Su grupo | Todos |
+| `gestionarMiembros` | Cambiar rol, mover de grupo y sacar miembros (`POST /api/usuarios/cambiar-rol`, `/mover-grupo`, `/remover-grupo`, HU-9) | — | Su grupo, solo a **Agentes**, solo hacia **Agente** | Todos |
+| `verReporteGrupo` | Reporte del grupo (`GET /api/reportes/jefe`, HU-5) | — | Su grupo | Todos |
+| `asignarResponsable` | Asignar o reasignar el responsable y los colaboradores de cualquier oportunidad (HU 4.1, HU-7) y asignar tareas a otra persona (HU-6) | — (solo las suyas) | Su grupo | Todos |
 | `crearGrupos` | Crear grupos | — | — | ✓ |
 | `eliminarGrupos` | Eliminar grupos *(endpoint pendiente)* | — | — | ✓ |
-| `verReporteGeneral` | Reporte general de la empresa *(endpoint: HU de reportes)* | — | — | ✓ |
-| `administrarUsuarios` | Administrar usuarios de cualquier grupo *(endpoint: HU-9)* | — | — | ✓ |
+| `verReporteGeneral` | Reporte general de la empresa (`GET /api/reportes/general`, HU-8) | — | — | ✓ |
+| `administrarUsuarios` | Eliminar usuarios de la empresa (`POST /api/usuarios/eliminar-empresa`, HU-9) | — | — | ✓ |
 | — | Registrar la empresa | Público (crea al Administrador) | | |
 
 ## Sin escalada de privilegios
@@ -43,7 +43,9 @@ Niveles: **Agente = 0 · Jefe de Área = 1 · Administrador = 2**. Cada rol here
 - El Administrador puede asignar Agente o Jefe de Área en cualquier grupo.
 
 Funciones que lo implementan: `rolMaximoAsignable` y `puedeGestionarMiembro` en `permisos.js`.
-Los endpoints de HU-9 y HU-10 deben usarlas en lugar de reimplementar la regla.
+Los endpoints de HU-9 (`usuario.controller.js`) las usan en lugar de reimplementar la regla.
+Además, la empresa nunca se queda sin Administrador y a nadie se le saca de su único grupo
+(se le mueve a otro grupo o se le elimina de la empresa).
 
 ## Datos por grupo
 

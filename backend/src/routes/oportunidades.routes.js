@@ -11,7 +11,9 @@ import {
   deleteOportunidad,
   getColaboradores,
   addColaborador,
-  removeColaborador
+  removeColaborador,
+  reasignarOportunidad,
+  getHistorialReasignaciones
 } from '../controllers/oportunidades.controller.js';
 import { ETAPAS } from '../config/crm.js';
 
@@ -24,6 +26,7 @@ router.use(autenticar, autorizar('gestionarCRM'));
 // Rutas de lectura
 router.get('/', getOportunidades);
 router.get('/:id', getOportunidadById);
+router.get('/:id/reasignaciones', [param('id').isUUID().withMessage('El ID de la oportunidad debe ser un UUID válido'), validarCampos], getHistorialReasignaciones);
 
 // Reglas de validación base
 // El grupo no se elige: la oportunidad toma el de su contacto (HU 4.1)
@@ -62,6 +65,18 @@ router.put(
   ],
   updateOportunidad
 );
+
+// Reasignación de responsable (HU-7): solo Jefe de Área o Administrador
+router.patch(
+  '/:id/reasignar',
+  [
+    param('id').isUUID().withMessage('El ID de la oportunidad debe ser un UUID válido'),
+    body('responsable_id').notEmpty().withMessage('El responsable_id es obligatorio').isUUID().withMessage('El responsable_id debe ser un UUID válido'),
+    validarCampos
+  ],
+  reasignarOportunidad
+);
+
 
 // Eliminación (DELETE)
 router.delete('/:id', deleteOportunidad);
