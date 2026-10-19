@@ -12,7 +12,8 @@ import {
   getColaboradores,
   addColaborador,
   removeColaborador,
-  reasignarOportunidad
+  reasignarOportunidad,
+  getHistorialReasignaciones
 } from '../controllers/oportunidades.controller.js';
 import { ETAPAS } from '../config/crm.js';
 
@@ -25,6 +26,7 @@ router.use(autenticar, autorizar('gestionarCRM'));
 // Rutas de lectura
 router.get('/', getOportunidades);
 router.get('/:id', getOportunidadById);
+router.get('/:id/reasignaciones', [param('id').isUUID().withMessage('El ID de la oportunidad debe ser un UUID válido'), validarCampos], getHistorialReasignaciones);
 
 // Reglas de validación base
 // El grupo no se elige: la oportunidad toma el de su contacto (HU 4.1)

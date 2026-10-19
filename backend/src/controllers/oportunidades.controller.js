@@ -39,6 +39,25 @@ async function validarResponsable(req, grupoId, responsableId, responsableActual
   return null;
 }
 
+export const getHistorialReasignaciones = async (req, res) => {
+  try {
+    const ambito = ambitoDe(req);
+    const oportunidadId = req.params.id;
+
+    // Validar que la oportunidad existe y es visible para el usuario (404)
+    const oportunidad = await oportunidadesService.getById(oportunidadId, ambito);
+    if (!oportunidad) {
+      return res.status(404).json({ message: 'Oportunidad no encontrada' });
+    }
+
+    const historial = await oportunidadesService.obtenerHistorialReasignaciones(oportunidadId, ambito);
+    res.json(historial);
+  } catch (error) {
+    console.error('Error en getHistorialReasignaciones:', error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
 // El responsable de la oportunidad, o el Jefe/Admin de su grupo, administra los colaboradores
 const puedeGestionarColaboradores = (req, oportunidad) =>
   oportunidad.responsable_id === req.perfil.usuario.id ||
@@ -76,14 +95,27 @@ export const reasignarOportunidad = async (req, res) => {
       return res.status(400).json({ error: 'El agente destino ya es el responsable actual de la oportunidad' });
     }
 
-    // Ejecutar reasignación
-    await oportunidadesService.reasignar(oportunidadId, companyId, nuevoResponsableId);
+    // Ejecutar reasignación mediante RPC
+    await oportunidadesService.reasignar(
+        oportunidadId, 
+        companyId, 
+        nuevoResponsableId, 
+        req.perfil.usuario.id
+    );
 
     // Devolver la oportunidad actualizada con el nuevo responsable
     const actualizada = await oportunidadesService.getById(oportunidadId, ambito);
     res.json(actualizada);
 
   } catch (error) {
+    // Mapeo de errores de la función RPC (Postgres) a respuestas HTTP
+    if (error.code === 'HU701') {
+      return res.status(404).json({ error: error.message });
+    }
+    if (error.code === 'HU702') {
+      return res.status(400).json({ error: error.message });
+    }
+
     console.error('Error en reasignarOportunidad:', error);
     res.status(500).json({ error: error.message });
   }

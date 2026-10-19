@@ -133,32 +133,41 @@ export const oportunidadesService = {
     return data.length > 0;
   },
 
-  async reasignar(id, companyId, nuevoResponsableId) {
-    // 1. Obtener responsable actual antes del cambio
-    const { data: actual, error: errBusqueda } = await supabase
-      .from('oportunidades')
-      .select('responsable_id')
-      .eq('id', id)
+  async obtenerHistorialReasignaciones(oportunidadId, { companyId }) {
+    const { data, error } = await supabase
+      .from('oportunidad_reasignaciones')
+      .select(`
+        id,
+        created_at,
+        responsable_anterior_id,
+        responsable_anterior:profiles!oportunidad_reasignaciones_responsable_anterior_fk (full_name),
+        responsable_nuevo_id,
+        responsable_nuevo:profiles!oportunidad_reasignaciones_responsable_nuevo_fk (full_name),
+        reasignado_por,
+        usuario_reasignó:profiles!oportunidad_reasignaciones_reasignado_por_fk (full_name)
+      `)
+      .eq('oportunidad_id', oportunidadId)
       .eq('company_id', companyId)
-      .maybeSingle();
+      .order('created_at', { ascending: false });
 
-    if (errBusqueda) throw errBusqueda;
-    if (!actual) return null;
+    if (error) throw error;
+    return data;
+  },
 
-    // 2. Actualizar solo el responsable_id
-    const { data: actualizado, error: errUpdate } = await supabase
-      .from('oportunidades')
-      .update({ responsable_id: nuevoResponsableId })
-      .eq('id', id)
-      .eq('company_id', companyId)
-      .select('responsable_id')
-      .single();
+  async reasignar(id, companyId, nuevoResponsableId, reasignadoPorId) {
+    const { data, error } = await supabase.rpc('reasignar_oportunidad', {
+      p_oportunidad_id: id,
+      p_company_id: companyId,
+      p_nuevo_responsable_id: nuevoResponsableId,
+      p_reasignado_por: reasignadoPorId
+    });
 
-    if (errUpdate) throw errUpdate;
-
+    if (error) throw error;
+    
+    const resultado = data[0];
     return {
-      responsableAnterior: actual.responsable_id,
-      responsableNuevo: actualizado.responsable_id
+      responsableAnterior: resultado.responsable_anterior,
+      responsableNuevo: resultado.responsable_nuevo
     };
   }
 };
