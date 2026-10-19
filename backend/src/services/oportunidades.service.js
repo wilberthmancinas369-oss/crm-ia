@@ -140,11 +140,11 @@ export const oportunidadesService = {
         id,
         created_at,
         responsable_anterior_id,
-        responsable_anterior:profiles!oportunidad_reasignaciones_responsable_anterior_fk (full_name),
+        responsable_anterior:profiles!reasignaciones_anterior_fk (full_name),
         responsable_nuevo_id,
-        responsable_nuevo:profiles!oportunidad_reasignaciones_responsable_nuevo_fk (full_name),
+        responsable_nuevo:profiles!reasignaciones_nuevo_fk (full_name),
         reasignado_por,
-        usuario_reasignó:profiles!oportunidad_reasignaciones_reasignado_por_fk (full_name)
+        reasignado_por_usuario:profiles!reasignaciones_usuario_fk (full_name)
       `)
       .eq('oportunidad_id', oportunidadId)
       .eq('company_id', companyId)
