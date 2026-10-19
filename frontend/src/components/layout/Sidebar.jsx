@@ -10,7 +10,8 @@ export const NAV_ITEMS = [
   { to: '/app/tareas', label: 'Mis tareas', permiso: 'gestionarCRM' },
   { to: '/app/grupos', label: 'Grupos', permiso: 'verMiembros' },
   { to: '/app/grupos/invitar', label: 'Invitar usuario', permiso: 'invitarUsuarios' },
-  { to: '/app/reportes', label: 'Reportes', permiso: 'verReporteGrupo' },
+  { to: '/app/reportes', label: 'Reporte de grupo', permiso: 'verReporteGrupo' },
+  { to: '/app/reportes/general', label: 'Reporte general', permiso: 'verReporteGeneral' },
 ]
 
 export default function Sidebar() {

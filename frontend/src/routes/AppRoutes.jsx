@@ -16,6 +16,7 @@ import Reportes from '../pages/Reportes'
 import Bienvenida from '../pages/Bienvenida'
 import Pipeline from '../pages/Pipeline'
 import MisTareas from '../pages/MisTareas'
+import ReporteGeneral from '../pages/ReporteGeneral'
 
 export default function AppRoutes() {
   return (
@@ -47,6 +48,9 @@ export default function AppRoutes() {
           </Route>
           <Route element={<RequierePermiso permiso="verReporteGrupo" />}>
             <Route path="reportes" element={<Reportes />} />
+          </Route>
+          <Route element={<RequierePermiso permiso="verReporteGeneral" />}>
+            <Route path="reportes/general" element={<ReporteGeneral />} />
           </Route>
         </Route>
       </Route>

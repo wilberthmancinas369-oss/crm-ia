@@ -19,3 +19,13 @@ export const getReporteJefe = async (req, res) => {
     return res.status(500).json({ error: 'No se pudo generar el reporte del grupo' });
   }
 };
+
+// HU-8: la empresa sale del perfil (middleware autorizar), nunca del cliente
+export const getReporteGeneral = async (req, res) => {
+  try {
+    return res.json(await reportesService.getReporteGeneralEmpresa(req.company_id));
+  } catch (error) {
+    console.error('Error al generar reporte general:', error);
+    return res.status(500).json({ error: 'No se pudo generar el reporte general de la empresa' });
+  }
+};

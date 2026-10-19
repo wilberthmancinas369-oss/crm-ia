@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { query } from 'express-validator';
-import { getReporteJefe } from '../controllers/reportes.controller.js';
+import { getReporteJefe, getReporteGeneral } from '../controllers/reportes.controller.js';
 import { autenticar } from '../middlewares/autenticar.js';
 import { autorizar } from '../middlewares/autorizarRol.js';
 import { validarCampos } from '../middlewares/validarCampos.js';
@@ -13,4 +13,5 @@ router.get('/jefe',
   validarCampos,
   getReporteJefe
 );
+router.get('/general', autenticar, autorizar('verReporteGeneral'), getReporteGeneral);
 export default router;

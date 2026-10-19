@@ -2,7 +2,64 @@ import supabase from '../config/supabase.js';
 
 const TAMANO_PAGINA = 500;
 
+// Lee todas las filas de una consulta en páginas, para no limitar los totales a la primera respuesta.
+async function leerTodo(crearConsulta) {
+  const filas = [];
+  for (let inicio = 0; ; inicio += TAMANO_PAGINA) {
+    const { data, error } = await crearConsulta().order('id', { ascending: true })
+      .range(inicio, inicio + TAMANO_PAGINA - 1);
+    if (error) throw error;
+    filas.push(...data);
+    if (data.length < TAMANO_PAGINA) return filas;
+  }
+}
+
 export const reportesService = {
+  // HU-8: comparativa de todos los grupos de la empresa (solo Administrador)
+  async getReporteGeneralEmpresa(companyId) {
+    if (!companyId) throw new Error('Empresa requerida para el reporte');
+    const { data: grupos, error } = await supabase.from('groups')
+      .select('id, name').eq('company_id', companyId).order('name');
+    if (error) throw error;
+
+    const [oportunidades, contactos, miembros] = await Promise.all([
+      leerTodo(() => supabase.from('oportunidades').select('id, valor_estimado, etapa, group_id').eq('company_id', companyId)),
+      leerTodo(() => supabase.from('contactos').select('id, group_id').eq('company_id', companyId)),
+      leerTodo(() => supabase.from('user_group_role').select('id, group_id').eq('company_id', companyId))
+    ]);
+
+    const comparativa = grupos.map((grupo) => {
+      const delGrupo = oportunidades.filter((o) => o.group_id === grupo.id);
+      const montoCentavos = delGrupo.reduce((total, o) => total + Math.round(Number(o.valor_estimado ?? 0) * 100), 0);
+      const ganadas = delGrupo.filter((o) => o.etapa === 'Ganada');
+      return {
+        grupo_id: grupo.id,
+        nombre: grupo.name,
+        totalMiembros: miembros.filter((m) => m.group_id === grupo.id).length,
+        totalContactos: contactos.filter((c) => c.group_id === grupo.id).length,
+        totalOportunidades: delGrupo.length,
+        oportunidadesGanadas: ganadas.length,
+        montoTotal: montoCentavos / 100,
+        montoGanado: ganadas.reduce((total, o) => total + Math.round(Number(o.valor_estimado ?? 0) * 100), 0) / 100,
+        ticketPromedio: delGrupo.length ? montoCentavos / 100 / delGrupo.length : 0
+      };
+    });
+
+    const suma = (campo) => comparativa.reduce((total, g) => total + g[campo], 0);
+    return {
+      empresa_id: companyId,
+      totalGrupos: grupos.length,
+      totales: {
+        totalContactos: suma('totalContactos'),
+        totalOportunidades: suma('totalOportunidades'),
+        oportunidadesGanadas: suma('oportunidadesGanadas'),
+        montoTotal: Math.round(suma('montoTotal') * 100) / 100,
+        montoGanado: Math.round(suma('montoGanado') * 100) / 100
+      },
+      grupos: comparativa
+    };
+  },
+
   async getResumenJefe({ companyId, groupId }, ahora = new Date()) {
     if (!companyId || !groupId) throw new Error('Empresa y grupo requeridos para el reporte');
     let montoCentavos = 0;
