@@ -47,7 +47,7 @@ export const getHistorialReasignaciones = async (req, res) => {
     // Validar que la oportunidad existe y es visible para el usuario (404)
     const oportunidad = await oportunidadesService.getById(oportunidadId, ambito);
     if (!oportunidad) {
-      return res.status(404).json({ message: 'Oportunidad no encontrada' });
+      return res.status(404).json({ error: 'Oportunidad no encontrada' });
     }
 
     const historial = await oportunidadesService.obtenerHistorialReasignaciones(oportunidadId, ambito);
@@ -72,27 +72,26 @@ export const reasignarOportunidad = async (req, res) => {
     // 1. Validar existencia y visibilidad (404)
     const actual = await oportunidadesService.getById(oportunidadId, ambito);
     if (!actual) {
-      return res.status(404).json({ message: 'Oportunidad no encontrada' });
+      return res.status(404).json({ error: 'Oportunidad no encontrada' });
     }
 
     const grupoId = actual.group_id;
-    const companyId = actual.company_id;
+    const companyId = req.company_id;
 
     // 2. Validar permiso de asignarResponsable en el grupo de la oportunidad (403)
     if (!puedeEnGrupo(req.perfil, 'asignarResponsable', grupoId)) {
       return res.status(403).json({ error: 'No tienes permisos para reasignar oportunidades en este grupo' });
     }
 
-    // 3. Validar que el destino sea válido (esté en el grupo/empresa) usando la lógica del proyecto
+    // 3. El destino debe ser distinto al actual (400)
+    if (nuevoResponsableId === actual.responsable_id) {
+      return res.status(400).json({ error: 'El agente destino ya es el responsable actual de la oportunidad' });
+    }
+
+    // 4. El destino debe ser miembro del grupo o administrador (misma regla que HU 4.1)
     const invalido = await validarResponsable(req, grupoId, nuevoResponsableId, actual.responsable_id);
     if (invalido) {
       return res.status(invalido.status).json({ error: invalido.error });
-    }
-
-    // 4. Validar que el destino sea distinto al actual (400)
-    // (Nota: validarResponsable ya hace esto en la línea 28, pero lo reforzamos aquí por claridad de la HU)
-    if (nuevoResponsableId === actual.responsable_id) {
-      return res.status(400).json({ error: 'El agente destino ya es el responsable actual de la oportunidad' });
     }
 
     // Ejecutar reasignación mediante RPC
@@ -179,12 +178,21 @@ export const updateOportunidad = async (req, res) => {
       }
     }
 
-    if ('responsable_id' in campos) {
-      const invalido = await validarResponsable(req, actual.group_id, campos.responsable_id, actual.responsable_id);
+    // Cambiar el responsable siempre pasa por la reasignación (HU-7) para que quede en el historial
+    const { responsable_id: nuevoResponsable, ...resto } = campos;
+    const reasigna = 'responsable_id' in campos && nuevoResponsable !== actual.responsable_id;
+    if (reasigna) {
+      const invalido = await validarResponsable(req, actual.group_id, nuevoResponsable, actual.responsable_id);
       if (invalido) return res.status(invalido.status).json({ error: invalido.error });
     }
 
-    const actualizada = await oportunidadesService.update(req.params.id, ambito, campos);
+    let actualizada = Object.keys(resto).length
+      ? await oportunidadesService.update(req.params.id, ambito, resto)
+      : actual;
+    if (reasigna) {
+      await oportunidadesService.reasignar(req.params.id, req.company_id, nuevoResponsable, req.perfil.usuario.id);
+      actualizada = await oportunidadesService.getById(req.params.id, ambito);
+    }
     res.json(actualizada);
   } catch (error) {
     res.status(500).json({ error: error.message });
