@@ -1,5 +1,6 @@
 -- SCRIPT: Historial de Reasignaciones de Oportunidades (HU-7) - Versión Final Correcta
 -- Descripción: Crea la tabla de historial y la función RPC para realizar reasignaciones atómicas.
+-- Requiere: hu4_1_refinar_contactos_oportunidades.sql (columna oportunidades.responsable_id).
 
 BEGIN;
 
