@@ -29,8 +29,9 @@ const JEFE = perfilDe('jefe', [['g1', NIVELES.JEFE_AREA]]);
 const AGENTE = perfilDe('agente', [['g1', NIVELES.AGENTE]]);
 
 const ROL = { rAgente: NIVELES.AGENTE, rJefe: NIVELES.JEFE_AREA, rAdmin: NIVELES.ADMINISTRADOR };
-const miembro = (id, user_id, group_id, role_id, company_id = EMPRESA) =>
-  ({ id, user_id, group_id, role_id, company_id, roles: { level: ROL[role_id] } });
+// Igual que la tabla real: sin columna id, la llave es (user_id, group_id)
+const miembro = (user_id, group_id, role_id, company_id = EMPRESA) =>
+  ({ user_id, group_id, role_id, company_id, roles: { level: ROL[role_id] } });
 
 const datosIniciales = () => ({
   groups: [
@@ -50,13 +51,13 @@ const datosIniciales = () => ({
     { id: 'agente2', company_id: EMPRESA }, { id: 'ajeno', company_id: 'c2' }
   ],
   user_group_role: [
-    miembro('mAdmin', 'admin', 'gA', 'rAdmin'),
-    miembro('mJefe', 'jefe', 'g1', 'rJefe'),
-    miembro('mAgente', 'agente', 'g1', 'rAgente'),
-    miembro('mAgenteG2', 'agente', 'g2', 'rAgente'),
-    miembro('mJefe2', 'jefe2', 'g1', 'rJefe'),
-    miembro('mAgente2', 'agente2', 'g2', 'rAgente'),
-    miembro('mAjeno', 'ajeno', 'gX', 'rAgente', 'c2')
+    miembro('admin', 'gA', 'rAdmin'),
+    miembro('jefe', 'g1', 'rJefe'),
+    miembro('agente', 'g1', 'rAgente'),
+    miembro('agente', 'g2', 'rAgente'),
+    miembro('jefe2', 'g1', 'rJefe'),
+    miembro('agente2', 'g2', 'rAgente'),
+    miembro('ajeno', 'gX', 'rAgente', 'c2')
   ],
   tareas: [{ id: 't1', responsable_id: 'agente2', company_id: EMPRESA }],
   invitations: [
@@ -100,7 +101,8 @@ const cambiarRol = (perfil, body) => peticion(perfil, 'gestionarMiembros', usuar
 const mover = (perfil, body) => peticion(perfil, 'gestionarMiembros', usuarioController.moverGrupo, { body });
 const remover = (perfil, body) => peticion(perfil, 'gestionarMiembros', usuarioController.removerGrupo, { body });
 const eliminar = (perfil, body) => peticion(perfil, 'administrarUsuarios', usuarioController.eliminarDeEmpresa, { body });
-const rolDe = (membresia) => db.user_group_role.find((m) => m.id === membresia)?.role_id;
+const membresia = (user_id, group_id) => db.user_group_role.find((m) => m.user_id === user_id && m.group_id === group_id);
+const rolDe = (user_id, group_id) => membresia(user_id, group_id)?.role_id;
 
 describe('HU-9: el Agente no administra usuarios', () => {
   test('recibe 403 en cambiar rol, mover, remover y eliminar', async () => {
@@ -115,13 +117,13 @@ describe('HU-9: Jefe de Área, solo Agentes de su grupo', () => {
   test('no puede ascender a un Agente a Jefe de Área', async () => {
     const res = await cambiarRol(JEFE, { userId: 'agente', groupId: 'g1', roleId: 'rJefe' });
     assert.equal(res.statusCode, 403);
-    assert.equal(rolDe('mAgente'), 'rAgente');
+    assert.equal(rolDe('agente', 'g1'), 'rAgente');
   });
 
   test('no puede cambiar el rol de otro Jefe de su grupo', async () => {
     const res = await cambiarRol(JEFE, { userId: 'jefe2', groupId: 'g1', roleId: 'rAgente' });
     assert.equal(res.statusCode, 403);
-    assert.equal(rolDe('mJefe2'), 'rJefe');
+    assert.equal(rolDe('jefe2', 'g1'), 'rJefe');
   });
 
   test('no puede tocar a usuarios de un grupo que no dirige', async () => {
@@ -130,7 +132,7 @@ describe('HU-9: Jefe de Área, solo Agentes de su grupo', () => {
   });
 
   test('no puede mover a un Agente a un grupo que no dirige', async () => {
-    db.user_group_role = db.user_group_role.filter((m) => m.id !== 'mAgenteG2');
+    db.user_group_role = db.user_group_role.filter((m) => m !== membresia('agente', 'g2'));
     const res = await mover(JEFE, { userId: 'agente', oldGroupId: 'g1', newGroupId: 'g2' });
     assert.equal(res.statusCode, 403);
   });
@@ -138,7 +140,7 @@ describe('HU-9: Jefe de Área, solo Agentes de su grupo', () => {
   test('puede sacar a un Agente de su grupo si tiene otro grupo', async () => {
     const res = await remover(JEFE, { userId: 'agente', groupId: 'g1' });
     assert.equal(res.statusCode, 200);
-    assert.ok(!db.user_group_role.some((m) => m.id === 'mAgente'));
+    assert.equal(membresia('agente', 'g1'), undefined);
   });
 
   test('no puede eliminar usuarios de la empresa', async () => {
@@ -156,7 +158,7 @@ describe('HU-9: Administrador', () => {
   test('puede ascender a un Agente a Jefe de Área', async () => {
     const res = await cambiarRol(ADMIN, { userId: 'agente2', groupId: 'g2', roleId: 'rJefe' });
     assert.equal(res.statusCode, 200);
-    assert.equal(rolDe('mAgente2'), 'rJefe');
+    assert.equal(rolDe('agente2', 'g2'), 'rJefe');
   });
 
   test('no puede asignar el rol Administrador por esta vía', async () => {
@@ -172,9 +174,8 @@ describe('HU-9: Administrador', () => {
   test('mueve a un usuario de grupo conservando su rol', async () => {
     const res = await mover(ADMIN, { userId: 'agente2', oldGroupId: 'g2', newGroupId: 'g1' });
     assert.equal(res.statusCode, 200);
-    const membresia = db.user_group_role.find((m) => m.id === 'mAgente2');
-    assert.equal(membresia.group_id, 'g1');
-    assert.equal(membresia.role_id, 'rAgente');
+    assert.equal(membresia('agente2', 'g2'), undefined);
+    assert.equal(rolDe('agente2', 'g1'), 'rAgente');
   });
 
   test('no mueve a un grupo donde el usuario ya está (409) ni a un grupo de otra empresa (404)', async () => {
@@ -185,16 +186,16 @@ describe('HU-9: Administrador', () => {
   test('no remueve a alguien de su único grupo (409)', async () => {
     const res = await remover(ADMIN, { userId: 'agente2', groupId: 'g2' });
     assert.equal(res.statusCode, 409);
-    assert.ok(db.user_group_role.some((m) => m.id === 'mAgente2'));
+    assert.ok(membresia('agente2', 'g2'));
   });
 
   test('la empresa nunca se queda sin Administrador', async () => {
     // Otro administrador, que es el único además de él mismo
-    db.user_group_role.push(miembro('mAdmin2', 'jefe2', 'gA', 'rAdmin'));
-    db.user_group_role = db.user_group_role.filter((m) => m.id !== 'mAdmin');
+    db.user_group_role.push(miembro('jefe2', 'gA', 'rAdmin'));
+    db.user_group_role = db.user_group_role.filter((m) => m !== membresia('admin', 'gA'));
     const res = await cambiarRol(perfilDe('admin', [['g1', NIVELES.ADMINISTRADOR]]), { userId: 'jefe2', groupId: 'gA', roleId: 'rJefe' });
     assert.equal(res.statusCode, 409);
-    assert.equal(rolDe('mAdmin2'), 'rAdmin');
+    assert.equal(rolDe('jefe2', 'gA'), 'rAdmin');
   });
 
   test('elimina a un usuario de la empresa y le pasa sus tareas', async () => {

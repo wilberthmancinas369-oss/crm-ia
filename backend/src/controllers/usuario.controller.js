@@ -36,11 +36,11 @@ export const usuarioController = {
       }
 
       if (membresia.nivel >= NIVELES.ADMINISTRADOR &&
-          await usuarioService.dejariaSinAdministrador([membresia.id], company_id)) {
+          await usuarioService.dejariaSinAdministrador([membresia], company_id)) {
         return res.status(409).json({ error: ULTIMO_ADMIN });
       }
 
-      const resultado = await usuarioService.actualizarRol(membresia.id, rol.id, company_id);
+      const resultado = await usuarioService.actualizarRol(membresia, rol.id, company_id);
       return res.json({ message: 'Rol actualizado exitosamente', user: resultado });
     } catch (error) {
       console.error('Error al cambiar rol:', error);
@@ -77,7 +77,7 @@ export const usuarioController = {
         return res.status(409).json({ error: 'El usuario ya pertenece al grupo de destino' });
       }
 
-      const resultado = await usuarioService.moverDeGrupo(membresia.id, newGroupId, company_id);
+      const resultado = await usuarioService.moverDeGrupo(membresia, newGroupId, company_id);
       return res.json({ message: 'Usuario movido de grupo exitosamente', user: resultado });
     } catch (error) {
       console.error('Error al mover grupo:', error);
@@ -110,11 +110,11 @@ export const usuarioController = {
       }
 
       if (membresia.nivel >= NIVELES.ADMINISTRADOR &&
-          await usuarioService.dejariaSinAdministrador([membresia.id], company_id)) {
+          await usuarioService.dejariaSinAdministrador([membresia], company_id)) {
         return res.status(409).json({ error: ULTIMO_ADMIN });
       }
 
-      const resultado = await usuarioService.quitarMembresia(membresia.id, company_id);
+      const resultado = await usuarioService.quitarMembresia(membresia, company_id);
       return res.json({ message: 'Usuario removido del grupo exitosamente', user: resultado });
     } catch (error) {
       console.error('Error al remover grupo:', error);

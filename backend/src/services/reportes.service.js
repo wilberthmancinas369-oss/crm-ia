@@ -3,11 +3,12 @@ import supabase from '../config/supabase.js';
 const TAMANO_PAGINA = 500;
 
 // Lee todas las filas de una consulta en páginas, para no limitar los totales a la primera respuesta.
-async function leerTodo(crearConsulta) {
+// `orden`: columnas que identifican cada fila, para que la paginación sea estable.
+async function leerTodo(crearConsulta, orden = ['id']) {
   const filas = [];
   for (let inicio = 0; ; inicio += TAMANO_PAGINA) {
-    const { data, error } = await crearConsulta().order('id', { ascending: true })
-      .range(inicio, inicio + TAMANO_PAGINA - 1);
+    const consulta = orden.reduce((c, columna) => c.order(columna, { ascending: true }), crearConsulta());
+    const { data, error } = await consulta.range(inicio, inicio + TAMANO_PAGINA - 1);
     if (error) throw error;
     filas.push(...data);
     if (data.length < TAMANO_PAGINA) return filas;
@@ -25,7 +26,9 @@ export const reportesService = {
     const [oportunidades, contactos, miembros] = await Promise.all([
       leerTodo(() => supabase.from('oportunidades').select('id, valor_estimado, etapa, group_id').eq('company_id', companyId)),
       leerTodo(() => supabase.from('contactos').select('id, group_id').eq('company_id', companyId)),
-      leerTodo(() => supabase.from('user_group_role').select('id, group_id').eq('company_id', companyId))
+      // user_group_role no tiene id: su llave es (user_id, group_id)
+      leerTodo(() => supabase.from('user_group_role').select('user_id, group_id').eq('company_id', companyId),
+        ['user_id', 'group_id'])
     ]);
 
     const comparativa = grupos.map((grupo) => {
