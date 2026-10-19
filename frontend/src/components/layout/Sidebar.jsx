@@ -7,8 +7,10 @@ export const NAV_ITEMS = [
   { to: '/app/contactos', label: 'Contactos', permiso: 'gestionarCRM' },
   { to: '/app/oportunidades', label: 'Oportunidades', permiso: 'gestionarCRM' },
   { to: '/app/pipeline', label: 'Pipeline', permiso: 'gestionarCRM' },
+  { to: '/app/tareas', label: 'Mis tareas', permiso: 'gestionarCRM' },
   { to: '/app/grupos', label: 'Grupos', permiso: 'verMiembros' },
   { to: '/app/grupos/invitar', label: 'Invitar usuario', permiso: 'invitarUsuarios' },
+  { to: '/app/reportes', label: 'Reportes', permiso: 'verReporteGrupo' },
 ]
 
 export default function Sidebar() {
