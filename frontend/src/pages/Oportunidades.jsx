@@ -8,7 +8,9 @@ import {
   eliminarOportunidad,
   obtenerOportunidadPorId,
   agregarColaborador,
-  quitarColaborador
+  quitarColaborador,
+  reasignarOportunidad,
+  obtenerHistorialReasignaciones
 } from '../services/oportunidades.js';
 import { listarInteracciones, registrarInteraccion } from '../services/interacciones.js';
 import { listarAsignables } from '../services/grupos.js';
@@ -25,6 +27,13 @@ const claseInput = (conError) =>
 // El backend responde { error } o, si falla express-validator, { errors: [{ msg }] }
 const mensajeDelServidor = (error, porDefecto) =>
   error.response?.data?.error || error.response?.data?.errors?.[0]?.msg || porDefecto;
+
+// La reasignación (HU-7) puede responder { error }, { message } (404) o { errors: [{ msg }] }
+const mensajeDeReasignacion = (error) =>
+  error.response?.data?.error ||
+  error.response?.data?.message ||
+  error.response?.data?.errors?.[0]?.msg ||
+  'No se pudo reasignar la oportunidad';
 
 const nombreDe = (usuario) => usuario?.full_name || usuario?.nombre || usuario?.email || '—';
 
@@ -136,13 +145,20 @@ function FormularioOportunidad({ contactos, onCreada }) {
   );
 }
 
-// ---------- Detalle: responsable, colaboradores e interacciones ----------
-function DetalleOportunidad({ id, onCerrar, onActualizar }) {
+// ---------- Detalle: responsable, colaboradores, interacciones e historial de reasignaciones ----------
+function DetalleOportunidad({ id, onCerrar, onReasignada }) {
   const { perfil } = useAuth();
   const [oportunidad, setOportunidad] = useState(null);
   const [asignables, setAsignables] = useState([]);
   const [interacciones, setInteracciones] = useState([]);
   const [colaboradorNuevo, setColaboradorNuevo] = useState('');
+  // Reasignación (HU-7)
+  const [reasignando, setReasignando] = useState(false);
+  const [nuevoResponsable, setNuevoResponsable] = useState('');
+  const [enviando, setEnviando] = useState(false);
+  const [historial, setHistorial] = useState([]);
+  const [cargandoHistorial, setCargandoHistorial] = useState(true);
+  const [errorHistorial, setErrorHistorial] = useState(null);
 
   const { register, handleSubmit, reset, formState: { errors } } = useForm({ defaultValues: { tipo: 'Llamada', detalle: '' } });
 
@@ -157,6 +173,23 @@ function DetalleOportunidad({ id, onCerrar, onActualizar }) {
   };
 
   useEffect(() => { cargar(); }, [id]);
+
+  // El historial se carga aparte: si falla, el resto del detalle sigue funcionando
+  const cargarHistorial = async () => {
+    try {
+      setErrorHistorial(null);
+      const datos = await obtenerHistorialReasignaciones(id);
+      setHistorial(Array.isArray(datos) ? datos : []);
+    } catch (error) {
+      console.error('Error al cargar el historial de reasignaciones:', error);
+      setHistorial([]);
+      setErrorHistorial('No se pudo cargar el historial de reasignaciones.');
+    } finally {
+      setCargandoHistorial(false);
+    }
+  };
+
+  useEffect(() => { cargarHistorial(); }, [id]);
 
   const grupoId = oportunidad?.group_id;
   const esJefeDelGrupo = grupoId && tienePermisoEnGrupo(perfil, 'asignarResponsable', grupoId);
@@ -176,12 +209,29 @@ function DetalleOportunidad({ id, onCerrar, onActualizar }) {
     (u) => u.id !== oportunidad.responsable_id && !colaboradores.some((c) => c.user_id === u.id)
   );
 
-  const cambiarResponsable = async (responsable_id) => {
+  // Posibles nuevos responsables: los del grupo, sin el responsable actual
+  const candidatos = asignables.filter((u) => u.id !== oportunidad.responsable_id);
+
+  const cancelarReasignacion = () => {
+    setReasignando(false);
+    setNuevoResponsable('');
+  };
+
+  // El responsable solo se cambia por aquí (PATCH /reasignar) para que quede en el historial
+  const confirmarReasignacion = async () => {
+    if (!nuevoResponsable || enviando) return;
+    const destino = candidatos.find((u) => u.id === nuevoResponsable);
+    if (!confirm(`¿Reasignar esta oportunidad de ${nombreDe(oportunidad.responsable)} a ${nombreDe(destino)}?`)) return;
+
+    setEnviando(true);
     try {
-      await onActualizar(id, { responsable_id }); // actualiza también la lista
-      await cargar();
+      await reasignarOportunidad(id, nuevoResponsable);
+      cancelarReasignacion();
+      await Promise.all([cargar(), cargarHistorial(), onReasignada()]);
     } catch (error) {
-      alert(mensajeDelServidor(error, 'No se pudo cambiar el responsable'));
+      alert(mensajeDeReasignacion(error));
+    } finally {
+      setEnviando(false);
     }
   };
 
@@ -229,13 +279,30 @@ function DetalleOportunidad({ id, onCerrar, onActualizar }) {
 
       <section>
         <h4 className="text-xs font-semibold uppercase text-gray-500 mb-2">Responsable</h4>
-        {esJefeDelGrupo ? (
-          <select className={claseInput(false)} value={oportunidad.responsable_id ?? ''} onChange={(e) => cambiarResponsable(e.target.value)}>
-            {!oportunidad.responsable_id && <option value="">Sin responsable</option>}
-            {asignables.map((u) => <option key={u.id} value={u.id}>{nombreDe(u)}</option>)}
-          </select>
-        ) : (
-          <p className="text-sm text-gray-800">{nombreDe(oportunidad.responsable)}</p>
+        <div className="flex items-center justify-between gap-2">
+          <p className="text-sm text-gray-800">{oportunidad.responsable ? nombreDe(oportunidad.responsable) : 'Sin responsable'}</p>
+          {esJefeDelGrupo && !reasignando && (
+            <button onClick={() => setReasignando(true)} className="btn shrink-0">Reasignar</button>
+          )}
+        </div>
+        {esJefeDelGrupo && reasignando && (
+          <div className="mt-2 space-y-2">
+            {candidatos.length === 0 ? (
+              <p className="text-xs text-gray-500">No hay otras personas en este grupo a quienes reasignar.</p>
+            ) : (
+              <select aria-label="Nuevo responsable" className={claseInput(false)} value={nuevoResponsable}
+                onChange={(e) => setNuevoResponsable(e.target.value)} disabled={enviando}>
+                <option value="">Selecciona al nuevo responsable…</option>
+                {candidatos.map((u) => <option key={u.id} value={u.id}>{nombreDe(u)}</option>)}
+              </select>
+            )}
+            <div className="flex justify-end gap-2">
+              <button onClick={cancelarReasignacion} disabled={enviando} className="btn disabled:opacity-50">Cancelar</button>
+              <button onClick={confirmarReasignacion} disabled={!nuevoResponsable || enviando} className="btn disabled:opacity-50">
+                {enviando ? 'Reasignando…' : 'Confirmar'}
+              </button>
+            </div>
+          </div>
         )}
       </section>
 
@@ -300,6 +367,31 @@ function DetalleOportunidad({ id, onCerrar, onActualizar }) {
           ))}
         </div>
       </section>
+
+      <section>
+        <h4 className="text-xs font-semibold uppercase text-gray-500 mb-2">Historial de reasignaciones</h4>
+        {cargandoHistorial ? (
+          <p className="text-xs text-gray-400">Cargando historial…</p>
+        ) : errorHistorial ? (
+          <p role="alert" className="text-xs text-red-600">{errorHistorial}</p>
+        ) : historial.length === 0 ? (
+          <p className="text-xs text-gray-400">Sin reasignaciones.</p>
+        ) : (
+          <ul className="space-y-2 max-h-60 overflow-y-auto pr-1">
+            {historial.map((h) => (
+              <li key={h.id} className="p-3 bg-gray-50 rounded-md border border-gray-100 text-xs">
+                <div className="flex justify-between gap-2">
+                  <span className="font-semibold text-gray-700">
+                    {h.responsable_anterior?.full_name || 'Sin responsable'} → {h.responsable_nuevo?.full_name || 'Usuario eliminado'}
+                  </span>
+                  <span className="text-[10px] text-gray-400 whitespace-nowrap">{new Date(h.created_at).toLocaleString('es-MX')}</span>
+                </div>
+                <p className="text-gray-500">Reasignó: {h.reasignado_por_usuario?.full_name || 'Usuario eliminado'}</p>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
     </div>
   );
 }
@@ -307,7 +399,7 @@ function DetalleOportunidad({ id, onCerrar, onActualizar }) {
 // ---------- Página ----------
 export default function Oportunidades() {
   const { contactos } = useCRM();
-  const { oportunidades, setOportunidades, cargando, error, actualizar } = useOportunidades();
+  const { oportunidades, setOportunidades, cargando, error, actualizar, recargar } = useOportunidades();
   const [seleccionada, setSeleccionada] = useState(null);
 
   const cambiarEtapa = async (id, etapa) => {
@@ -394,7 +486,7 @@ export default function Oportunidades() {
         </div>
 
         {seleccionada && (
-          <DetalleOportunidad key={seleccionada} id={seleccionada} onCerrar={() => setSeleccionada(null)} onActualizar={actualizar} />
+          <DetalleOportunidad key={seleccionada} id={seleccionada} onCerrar={() => setSeleccionada(null)} onReasignada={recargar} />
         )}
       </div>
     </div>

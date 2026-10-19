@@ -131,5 +131,43 @@ export const oportunidadesService = {
 
     if (error) throw error;
     return data.length > 0;
+  },
+
+  async obtenerHistorialReasignaciones(oportunidadId, { companyId }) {
+    const { data, error } = await supabase
+      .from('oportunidad_reasignaciones')
+      .select(`
+        id,
+        created_at,
+        responsable_anterior_id,
+        responsable_anterior:profiles!reasignaciones_anterior_fk (full_name),
+        responsable_nuevo_id,
+        responsable_nuevo:profiles!reasignaciones_nuevo_fk (full_name),
+        reasignado_por,
+        reasignado_por_usuario:profiles!reasignaciones_usuario_fk (full_name)
+      `)
+      .eq('oportunidad_id', oportunidadId)
+      .eq('company_id', companyId)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    return data;
+  },
+
+  async reasignar(id, companyId, nuevoResponsableId, reasignadoPorId) {
+    const { data, error } = await supabase.rpc('reasignar_oportunidad', {
+      p_oportunidad_id: id,
+      p_company_id: companyId,
+      p_nuevo_responsable_id: nuevoResponsableId,
+      p_reasignado_por: reasignadoPorId
+    });
+
+    if (error) throw error;
+    
+    const resultado = data[0];
+    return {
+      responsableAnterior: resultado.responsable_anterior,
+      responsableNuevo: resultado.responsable_nuevo
+    };
   }
 };
