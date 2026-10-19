@@ -13,6 +13,7 @@ import invitacionesRoutes from './routes/invitaciones.routes.js';
 import rolesRoutes from './routes/roles.routes.js';
 import reportesRoutes from './routes/reportes.routes.js';
 import tareasRoutes from './routes/tareas.routes.js';
+import usuarioRoutes from './routes/usuario.routes.js';
 import { iniciarRecordatorios } from './services/recordatorios.service.js';
 
 const app = express();
@@ -32,6 +33,7 @@ app.use('/api/invitaciones', invitacionesRoutes);
 app.use('/api/roles', rolesRoutes);
 app.use('/api/reportes', reportesRoutes);
 app.use('/api/tareas', tareasRoutes);
+app.use('/api/usuarios', usuarioRoutes);
 
 // Ruta de prueba
 app.get('/', (req, res) => {

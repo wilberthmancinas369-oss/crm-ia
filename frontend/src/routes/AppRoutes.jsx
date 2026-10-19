@@ -17,6 +17,7 @@ import Bienvenida from '../pages/Bienvenida'
 import Pipeline from '../pages/Pipeline'
 import MisTareas from '../pages/MisTareas'
 import ReporteGeneral from '../pages/ReporteGeneral'
+import AdminUsuarios from '../pages/AdministracionUsuarios'
 
 export default function AppRoutes() {
   return (
@@ -45,6 +46,9 @@ export default function AppRoutes() {
           </Route>
           <Route element={<RequierePermiso permiso="invitarUsuarios" />}>
             <Route path="grupos/invitar" element={<InvitarUsuario />} />
+          </Route>
+          <Route element={<RequierePermiso permiso="gestionarMiembros" />}>
+            <Route path="usuarios" element={<AdminUsuarios />} />
           </Route>
           <Route element={<RequierePermiso permiso="verReporteGrupo" />}>
             <Route path="reportes" element={<Reportes />} />

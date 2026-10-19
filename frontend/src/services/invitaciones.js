@@ -16,3 +16,13 @@ export async function aceptarInvitacion(token, { nombre, password }) {
   const { data } = await api.post(`/invitaciones/${token}/aceptar`, { nombre, password })
   return data
 }
+
+export async function reenviarInvitacion(invitationId) {
+  const { data } = await api.post(`/invitaciones/${invitationId}/reenviar`)
+  return data
+}
+
+export async function cancelarInvitacion(invitationId) {
+  const { data } = await api.post(`/invitaciones/${invitationId}/cancelar`)
+  return data
+}
