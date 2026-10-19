@@ -13,7 +13,7 @@ import Oportunidades from '../pages/Oportunidades'
 import Grupos from '../pages/Grupos'
 import InvitarUsuario from '../pages/InvitarUsuario'
 import Bienvenida from '../pages/Bienvenida'
-
+import ReporteGeneral from '../pages/ReporteGeneral'
 export default function AppRoutes() {
   return (
     <Routes>
@@ -39,6 +39,9 @@ export default function AppRoutes() {
           </Route>
           <Route element={<RequierePermiso permiso="invitarUsuarios" />}>
             <Route path="grupos/invitar" element={<InvitarUsuario />} />
+          </Route>
+          <Route element={<RequierePermiso permiso="verReporteGeneral" />}>
+            <Route path="reportes/general" element={<ReporteGeneral />} />
           </Route>
         </Route>
       </Route>

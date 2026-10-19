@@ -88,11 +88,19 @@ export default function Grupos() {
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
+      {/* Encabezado con los botones de acción segun permisos */}
       <div className="border-b pb-4 border-gray-200 flex items-center justify-between">
         <h1 className="text-2xl font-bold text-gray-800">Grupos</h1>
-        {puede('invitarUsuarios') && (
-          <Link to="/app/grupos/invitar" className="btn">Invitar usuario</Link>
-        )}
+        <div className="flex items-center gap-3">
+          {puede('verReporteGeneral') && (
+            <Link to="/app/reportes/general" className="btn bg-emerald-600 hover:bg-emerald-700 text-white">
+              Ver Reporte General
+            </Link>
+          )}
+          {puede('invitarUsuarios') && (
+            <Link to="/app/grupos/invitar" className="btn">Invitar usuario</Link>
+          )}
+        </div>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3 items-start">
