@@ -131,5 +131,34 @@ export const oportunidadesService = {
 
     if (error) throw error;
     return data.length > 0;
+  },
+
+  async reasignar(id, companyId, nuevoResponsableId) {
+    // 1. Obtener responsable actual antes del cambio
+    const { data: actual, error: errBusqueda } = await supabase
+      .from('oportunidades')
+      .select('responsable_id')
+      .eq('id', id)
+      .eq('company_id', companyId)
+      .maybeSingle();
+
+    if (errBusqueda) throw errBusqueda;
+    if (!actual) return null;
+
+    // 2. Actualizar solo el responsable_id
+    const { data: actualizado, error: errUpdate } = await supabase
+      .from('oportunidades')
+      .update({ responsable_id: nuevoResponsableId })
+      .eq('id', id)
+      .eq('company_id', companyId)
+      .select('responsable_id')
+      .single();
+
+    if (errUpdate) throw errUpdate;
+
+    return {
+      responsableAnterior: actual.responsable_id,
+      responsableNuevo: actualizado.responsable_id
+    };
   }
 };

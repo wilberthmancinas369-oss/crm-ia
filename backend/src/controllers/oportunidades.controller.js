@@ -44,6 +44,51 @@ const puedeGestionarColaboradores = (req, oportunidad) =>
   oportunidad.responsable_id === req.perfil.usuario.id ||
   puedeEnGrupo(req.perfil, 'asignarResponsable', oportunidad.group_id);
 
+export const reasignarOportunidad = async (req, res) => {
+  try {
+    const ambito = ambitoDe(req);
+    const { responsable_id: nuevoResponsableId } = req.body;
+    const oportunidadId = req.params.id;
+
+    // 1. Validar existencia y visibilidad (404)
+    const actual = await oportunidadesService.getById(oportunidadId, ambito);
+    if (!actual) {
+      return res.status(404).json({ message: 'Oportunidad no encontrada' });
+    }
+
+    const grupoId = actual.group_id;
+    const companyId = actual.company_id;
+
+    // 2. Validar permiso de asignarResponsable en el grupo de la oportunidad (403)
+    if (!puedeEnGrupo(req.perfil, 'asignarResponsable', grupoId)) {
+      return res.status(403).json({ error: 'No tienes permisos para reasignar oportunidades en este grupo' });
+    }
+
+    // 3. Validar que el destino sea válido (esté en el grupo/empresa) usando la lógica del proyecto
+    const invalido = await validarResponsable(req, grupoId, nuevoResponsableId, actual.responsable_id);
+    if (invalido) {
+      return res.status(invalido.status).json({ error: invalido.error });
+    }
+
+    // 4. Validar que el destino sea distinto al actual (400)
+    // (Nota: validarResponsable ya hace esto en la línea 28, pero lo reforzamos aquí por claridad de la HU)
+    if (nuevoResponsableId === actual.responsable_id) {
+      return res.status(400).json({ error: 'El agente destino ya es el responsable actual de la oportunidad' });
+    }
+
+    // Ejecutar reasignación
+    await oportunidadesService.reasignar(oportunidadId, companyId, nuevoResponsableId);
+
+    // Devolver la oportunidad actualizada con el nuevo responsable
+    const actualizada = await oportunidadesService.getById(oportunidadId, ambito);
+    res.json(actualizada);
+
+  } catch (error) {
+    console.error('Error en reasignarOportunidad:', error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
 export const getOportunidades = async (req, res) => {
   try {
     const oportunidades = await oportunidadesService.getAll(ambitoDe(req));

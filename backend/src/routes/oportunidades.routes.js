@@ -11,7 +11,8 @@ import {
   deleteOportunidad,
   getColaboradores,
   addColaborador,
-  removeColaborador
+  removeColaborador,
+  reasignarOportunidad
 } from '../controllers/oportunidades.controller.js';
 import { ETAPAS } from '../config/crm.js';
 
@@ -62,6 +63,18 @@ router.put(
   ],
   updateOportunidad
 );
+
+// Reasignación de responsable (HU-7): solo Jefe de Área o Administrador
+router.patch(
+  '/:id/reasignar',
+  [
+    param('id').isUUID().withMessage('El ID de la oportunidad debe ser un UUID válido'),
+    body('responsable_id').notEmpty().withMessage('El responsable_id es obligatorio').isUUID().withMessage('El responsable_id debe ser un UUID válido'),
+    validarCampos
+  ],
+  reasignarOportunidad
+);
+
 
 // Eliminación (DELETE)
 router.delete('/:id', deleteOportunidad);
