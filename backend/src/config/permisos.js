@@ -15,8 +15,8 @@ export const PERMISOS = {
   verGrupos:             { nivel: NIVELES.AGENTE,        alcance: 'grupo' },
   verMiembros:           { nivel: NIVELES.JEFE_AREA,     alcance: 'grupo' },
   invitarUsuarios:       { nivel: NIVELES.JEFE_AREA,     alcance: 'grupo' },
-  gestionarInvitaciones: { nivel: NIVELES.JEFE_AREA,     alcance: 'grupo' },   // reenviar/cancelar (HU-10)
-  gestionarMiembros:     { nivel: NIVELES.JEFE_AREA,     alcance: 'grupo' },   // cambiar rol, sacar (HU-9)
+  gestionarInvitaciones: { nivel: NIVELES.JEFE_AREA,     alcance: 'grupo' },   // reenviar/cancelar (HU-9)
+  gestionarMiembros:     { nivel: NIVELES.JEFE_AREA,     alcance: 'grupo' },   // cambiar rol y mover de grupo (HU-9)
   verReporteGrupo:       { nivel: NIVELES.JEFE_AREA,     alcance: 'grupo' },
   asignarResponsable:    { nivel: NIVELES.JEFE_AREA,     alcance: 'grupo' },   // responsable y colaboradores de oportunidades ajenas (HU 4.1)
   crearGrupos:           { nivel: NIVELES.ADMINISTRADOR, alcance: 'empresa' },
@@ -72,12 +72,12 @@ export const rolMaximoAsignable = (perfil, grupoId) => {
 };
 
 /**
- * ¿Puede el usuario cambiar el rol de un miembro o sacarlo del grupo? (para los endpoints de HU-9)
+ * ¿Puede el usuario cambiar el rol de un miembro o moverlo a otro grupo? (para los endpoints de HU-9)
  * - Nadie se modifica a sí mismo por esta vía.
  * - Administrador: a cualquiera, siempre que el nivel nuevo sea asignable.
  * - Jefe de Área: solo Agentes de su grupo, y solo hacia Agente (no escala privilegios).
  * @param {object} miembro { id, nivel } rol actual del miembro en ese grupo
- * @param {number|null} nivelNuevo nivel al que se quiere cambiar, o null si se le saca del grupo
+ * @param {number|null} nivelNuevo nivel al que se quiere cambiar, o null si se le mueve de grupo con su rol
  */
 export const puedeGestionarMiembro = (perfil, grupoId, miembro, nivelNuevo = null) => {
   if (miembro.id === perfil.usuario.id) return false;

@@ -9,7 +9,7 @@ Todas las historias del Sprint 2 unidas en la rama `HU4.1-reafinar-contactos-opo
 | HU-6 | Tareas ligadas a un contacto u oportunidad y recordatorio por correo 24 h antes | Jesús | Mis tareas |
 | HU-7 | Reasignar una oportunidad a otro agente con historial | Mia | Oportunidades → detalle |
 | HU-8 | Reporte general: comparativa de todos los grupos de la empresa | Juventino | Reporte general |
-| HU-9 | Cambiar rol, mover de grupo, sacar del grupo, eliminar de la empresa; reenviar y cancelar invitaciones | Artemio | Usuarios, Grupos |
+| HU-9 | Cambiar rol, mover de grupo, eliminar de la empresa; reenviar y cancelar invitaciones | Artemio | Usuarios, Grupos |
 | HU-11 | El Jefe de Área solo tiene permisos dentro de su grupo (ya estaba en `main`) | Wilberth | — |
 
 Permisos de cada acción: [`HU11-matriz-permisos.md`](HU11-matriz-permisos.md).
@@ -70,8 +70,8 @@ quien no lo tenga lo crea copiando `.env.example`.
   endpoints y la pantalla:
   - Jefe de Área: solo Agentes de sus grupos y solo hacia Agente; para mover, debe dirigir ambos grupos.
   - Nadie se modifica a sí mismo; la empresa nunca se queda sin Administrador.
-  - Sacar a alguien de su **único** grupo responde 409 (antes se creaba un grupo "Sin Grupo"):
-    se le mueve a otro grupo o se le elimina de la empresa.
+  - Se quitó "Remover del grupo" (antes creaba un grupo "Sin Grupo"); para cambiar a alguien
+    de área se le mueve de grupo, y para darlo de baja se le elimina de la empresa.
   - Eliminar de la empresa pasa sus tareas a quien elimina y deja sus oportunidades sin
     responsable, para reasignarlas con HU-7.
   - Cancelar invitaciones necesitaba el estado `cancelada` → `hu9_invitaciones_canceladas.sql`.

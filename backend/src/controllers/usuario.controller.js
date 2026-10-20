@@ -85,43 +85,6 @@ export const usuarioController = {
     }
   },
 
-  // POST /api/usuarios/remover-grupo  { userId, groupId }
-  async removerGrupo(req, res) {
-    try {
-      const { userId, groupId } = req.body;
-      const { company_id, perfil } = req;
-
-      if (userId === perfil.usuario.id) {
-        return res.status(403).json({ error: 'No puedes removerte a ti mismo de un grupo' });
-      }
-
-      const membresia = await usuarioService.obtenerMembresia(userId, groupId, company_id);
-      if (!membresia) return res.status(404).json({ error: 'El usuario no pertenece a ese grupo' });
-
-      if (!puedeGestionarMiembro(perfil, groupId, { id: userId, nivel: membresia.nivel })) {
-        return res.status(403).json({ error: 'No puedes remover a este usuario de este grupo' });
-      }
-
-      // Sin grupo no tendría ningún permiso: se le mueve a otro grupo o se elimina de la empresa
-      if ((await usuarioService.membresiasDe(userId, company_id)).length <= 1) {
-        return res.status(409).json({
-          error: 'Es el único grupo del usuario. Muévelo a otro grupo o elimínalo de la empresa.'
-        });
-      }
-
-      if (membresia.nivel >= NIVELES.ADMINISTRADOR &&
-          await usuarioService.dejariaSinAdministrador([membresia], company_id)) {
-        return res.status(409).json({ error: ULTIMO_ADMIN });
-      }
-
-      const resultado = await usuarioService.quitarMembresia(membresia, company_id);
-      return res.json({ message: 'Usuario removido del grupo exitosamente', user: resultado });
-    } catch (error) {
-      console.error('Error al remover grupo:', error);
-      return res.status(500).json({ error: 'Error interno del servidor al remover al usuario' });
-    }
-  },
-
   // POST /api/usuarios/eliminar-empresa  { userId } — solo Administrador (administrarUsuarios)
   async eliminarDeEmpresa(req, res) {
     try {

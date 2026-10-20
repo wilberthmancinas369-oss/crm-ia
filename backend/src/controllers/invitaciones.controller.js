@@ -233,7 +233,7 @@ export const invitarUsuario = async (req, res) => {
   }
 };
 
-// HU-9/HU-10: reenviar o cancelar una invitación. Solo las que siguen pendientes (o vencidas) y solo
+// HU-9: reenviar o cancelar una invitación. Solo las que siguen pendientes (o vencidas) y solo
 // en grupos donde se tiene gestionarInvitaciones (Jefe de Área de ese grupo o Administrador).
 async function buscarInvitacionGestionable(req) {
   const { data: invitacion, error } = await supabase

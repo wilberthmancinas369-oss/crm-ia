@@ -1,4 +1,4 @@
-// HU-9: editar o remover usuarios y cambiar grupo/rol; reenviar y cancelar invitaciones.
+// HU-9: cambiar rol o grupo, eliminar usuarios de la empresa; reenviar y cancelar invitaciones.
 import { test, describe, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
 import { supabaseFalso } from './helpers/supabaseFalso.js';
@@ -99,16 +99,14 @@ async function peticion(perfil, permiso, controlador, { body = {}, params = {} }
 
 const cambiarRol = (perfil, body) => peticion(perfil, 'gestionarMiembros', usuarioController.cambiarRol, { body });
 const mover = (perfil, body) => peticion(perfil, 'gestionarMiembros', usuarioController.moverGrupo, { body });
-const remover = (perfil, body) => peticion(perfil, 'gestionarMiembros', usuarioController.removerGrupo, { body });
 const eliminar = (perfil, body) => peticion(perfil, 'administrarUsuarios', usuarioController.eliminarDeEmpresa, { body });
 const membresia = (user_id, group_id) => db.user_group_role.find((m) => m.user_id === user_id && m.group_id === group_id);
 const rolDe = (user_id, group_id) => membresia(user_id, group_id)?.role_id;
 
 describe('HU-9: el Agente no administra usuarios', () => {
-  test('recibe 403 en cambiar rol, mover, remover y eliminar', async () => {
+  test('recibe 403 en cambiar rol, mover y eliminar', async () => {
     assert.equal((await cambiarRol(AGENTE, { userId: 'agente2', groupId: 'g2', roleId: 'rJefe' })).statusCode, 403);
     assert.equal((await mover(AGENTE, { userId: 'agente2', oldGroupId: 'g2', newGroupId: 'g1' })).statusCode, 403);
-    assert.equal((await remover(AGENTE, { userId: 'agente2', groupId: 'g2' })).statusCode, 403);
     assert.equal((await eliminar(AGENTE, { userId: 'agente2' })).statusCode, 403);
   });
 });
@@ -127,7 +125,7 @@ describe('HU-9: Jefe de Área, solo Agentes de su grupo', () => {
   });
 
   test('no puede tocar a usuarios de un grupo que no dirige', async () => {
-    assert.equal((await remover(JEFE, { userId: 'agente2', groupId: 'g2' })).statusCode, 403);
+    assert.equal((await cambiarRol(JEFE, { userId: 'agente2', groupId: 'g2', roleId: 'rAgente' })).statusCode, 403);
     assert.equal((await mover(JEFE, { userId: 'agente2', oldGroupId: 'g2', newGroupId: 'g1' })).statusCode, 403);
   });
 
@@ -135,12 +133,6 @@ describe('HU-9: Jefe de Área, solo Agentes de su grupo', () => {
     db.user_group_role = db.user_group_role.filter((m) => m !== membresia('agente', 'g2'));
     const res = await mover(JEFE, { userId: 'agente', oldGroupId: 'g1', newGroupId: 'g2' });
     assert.equal(res.statusCode, 403);
-  });
-
-  test('puede sacar a un Agente de su grupo si tiene otro grupo', async () => {
-    const res = await remover(JEFE, { userId: 'agente', groupId: 'g1' });
-    assert.equal(res.statusCode, 200);
-    assert.equal(membresia('agente', 'g1'), undefined);
   });
 
   test('no puede eliminar usuarios de la empresa', async () => {
@@ -181,12 +173,6 @@ describe('HU-9: Administrador', () => {
   test('no mueve a un grupo donde el usuario ya está (409) ni a un grupo de otra empresa (404)', async () => {
     assert.equal((await mover(ADMIN, { userId: 'agente', oldGroupId: 'g1', newGroupId: 'g2' })).statusCode, 409);
     assert.equal((await mover(ADMIN, { userId: 'agente2', oldGroupId: 'g2', newGroupId: 'gX' })).statusCode, 404);
-  });
-
-  test('no remueve a alguien de su único grupo (409)', async () => {
-    const res = await remover(ADMIN, { userId: 'agente2', groupId: 'g2' });
-    assert.equal(res.statusCode, 409);
-    assert.ok(membresia('agente2', 'g2'));
   });
 
   test('la empresa nunca se queda sin Administrador', async () => {

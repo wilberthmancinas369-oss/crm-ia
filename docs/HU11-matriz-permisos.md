@@ -26,7 +26,7 @@ Niveles: **Agente = 0 · Jefe de Área = 1 · Administrador = 2**. Cada rol here
 | `verMiembros` | Ver miembros e invitaciones pendientes | — | Su grupo | Todos |
 | `invitarUsuarios` | Invitar usuarios a un grupo | — | Su grupo, solo como **Agente** | Cualquier grupo, como Agente o Jefe de Área |
 | `gestionarInvitaciones` | Reenviar y cancelar invitaciones (`POST /api/invitaciones/:id/reenviar` y `/cancelar`) | — | Su grupo | Todos |
-| `gestionarMiembros` | Cambiar rol, mover de grupo y sacar miembros (`POST /api/usuarios/cambiar-rol`, `/mover-grupo`, `/remover-grupo`, HU-9) | — | Su grupo, solo a **Agentes**, solo hacia **Agente** | Todos |
+| `gestionarMiembros` | Cambiar rol y mover de grupo (`POST /api/usuarios/cambiar-rol`, `/mover-grupo`, HU-9) | — | Su grupo, solo a **Agentes**, solo hacia **Agente** | Todos |
 | `verReporteGrupo` | Reporte del grupo (`GET /api/reportes/jefe`, HU-5) | — | Su grupo | Todos |
 | `asignarResponsable` | Asignar o reasignar el responsable y los colaboradores de cualquier oportunidad (HU 4.1, HU-7) y asignar tareas a otra persona (HU-6) | — (solo las suyas) | Su grupo | Todos |
 | `crearGrupos` | Crear grupos | — | — | ✓ |
@@ -44,8 +44,8 @@ Niveles: **Agente = 0 · Jefe de Área = 1 · Administrador = 2**. Cada rol here
 
 Funciones que lo implementan: `rolMaximoAsignable` y `puedeGestionarMiembro` en `permisos.js`.
 Los endpoints de HU-9 (`usuario.controller.js`) las usan en lugar de reimplementar la regla.
-Además, la empresa nunca se queda sin Administrador y a nadie se le saca de su único grupo
-(se le mueve a otro grupo o se le elimina de la empresa).
+Además, la empresa nunca se queda sin Administrador. No hay opción de sacar a alguien de un grupo:
+se le mueve a otro grupo o el Administrador lo elimina de la empresa.
 
 ## Datos por grupo
 

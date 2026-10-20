@@ -15,7 +15,6 @@ const gestionar = [autenticar, autorizar('gestionarMiembros')];
 
 router.post('/cambiar-rol', [...gestionar, uuid('userId'), uuid('groupId'), uuid('roleId'), validarCampos], usuarioController.cambiarRol);
 router.post('/mover-grupo', [...gestionar, uuid('userId'), uuid('oldGroupId'), uuid('newGroupId'), validarCampos], usuarioController.moverGrupo);
-router.post('/remover-grupo', [...gestionar, uuid('userId'), uuid('groupId'), validarCampos], usuarioController.removerGrupo);
 router.post('/eliminar-empresa', [autenticar, autorizar('administrarUsuarios'), uuid('userId'), validarCampos], usuarioController.eliminarDeEmpresa);
 
 export default router;
