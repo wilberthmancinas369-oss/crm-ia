@@ -10,11 +10,6 @@ export async function moverUsuarioDeGrupo(userId, oldGroupId, newGroupId) {
   return data
 }
 
-export async function removerUsuarioDeGrupo(userId, groupId) {
-  const { data } = await api.post('/usuarios/remover-grupo', { userId, groupId })
-  return data
-}
-
 export async function eliminarUsuarioDeEmpresa(userId) {
   const { data } = await api.post('/usuarios/eliminar-empresa', { userId })
   return data

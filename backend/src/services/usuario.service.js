@@ -106,15 +106,6 @@ export const usuarioService = {
     return data;
   },
 
-  async quitarMembresia(membresia, companyId) {
-    const { data, error } = await deLaMembresia(
-      supabase.from('user_group_role').delete(), membresia, companyId
-    ).select();
-
-    if (error) throw error;
-    return data[0] ?? null;
-  },
-
   async perfilEnEmpresa(userId, companyId) {
     const { data, error } = await supabase
       .from('profiles')

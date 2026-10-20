@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { listarGruposConMiembros } from '../services/grupos'
 import { listarRolesInvitables } from '../services/roles'
-import { cambiarRolUsuario, moverUsuarioDeGrupo, removerUsuarioDeGrupo, eliminarUsuarioDeEmpresa } from '../services/usuarios'
+import { cambiarRolUsuario, moverUsuarioDeGrupo, eliminarUsuarioDeEmpresa } from '../services/usuarios'
 import { tienePermisoEnGrupo } from '../hooks/useGruposPermitidos'
 
 // HU-9. El backend decide qué se permite (config/permisos.js); aquí solo se desactivan las acciones
@@ -59,6 +59,8 @@ export default function AdministracionUsuarios() {
   }
 
   const esAdmin = perfil.alcances?.gestionarMiembros === null
+  // Solo el Administrador elimina usuarios de la empresa; sin esa acción no hay columna de acciones
+  const puedeEliminar = puede('administrarUsuarios')
   const gestionaGrupo = (grupoId) => tienePermisoEnGrupo(perfil, 'gestionarMiembros', grupoId)
   const listaUsuarios = usuarios ?? []
 
@@ -87,13 +89,13 @@ export default function AdministracionUsuarios() {
                 <th className="px-4 py-3">Usuario</th>
                 <th className="px-4 py-3">Grupo</th>
                 <th className="px-4 py-3">Rol</th>
-                <th className="px-4 py-3 text-right">Acciones</th>
+                {puedeEliminar && <th className="px-4 py-3 text-right">Acciones</th>}
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
               {listaUsuarios.length === 0 ? (
                 <tr>
-                  <td colSpan="4" className="px-4 py-8 text-center text-gray-500">No hay usuarios registrados en grupos.</td>
+                  <td colSpan={puedeEliminar ? 4 : 3} className="px-4 py-8 text-center text-gray-500">No hay usuarios registrados en grupos.</td>
                 </tr>
               ) : (
                 listaUsuarios.map((u) => {
@@ -145,28 +147,21 @@ export default function AdministracionUsuarios() {
                           ))}
                         </select>
                       </td>
-                      <td className="px-4 py-3 text-right space-x-2 whitespace-nowrap">
-                        <button
-                          onClick={() => window.confirm(`¿Remover a ${u.nombre || u.email} del grupo ${u.grupoNombre}?`) &&
-                            ejecutar(fila, () => removerUsuarioDeGrupo(u.id, u.grupoId),
-                              'Usuario removido del grupo con éxito', 'Error al remover el usuario')}
-                          disabled={ocupado || !puedeGestionarFila}
-                          className="text-xs text-red-600 hover:text-red-800 font-medium disabled:text-gray-400"
-                        >
-                          Remover del grupo
-                        </button>
-                        {puede('administrarUsuarios') && !esYo && (
-                          <button
-                            onClick={() => window.confirm('ADVERTENCIA: se eliminará permanentemente al usuario de la empresa. Sus tareas pasarán a ti y sus oportunidades quedarán sin responsable. Esta acción es irreversible. ¿Continuar?') &&
-                              ejecutar(fila, () => eliminarUsuarioDeEmpresa(u.id),
-                                'Usuario eliminado definitivamente de la empresa', 'Error al eliminar el usuario de la empresa')}
-                            disabled={ocupado}
-                            className="text-xs text-red-700 hover:text-red-900 font-bold disabled:text-gray-400"
-                          >
-                            Eliminar de la empresa
-                          </button>
-                        )}
-                      </td>
+                      {puedeEliminar && (
+                        <td className="px-4 py-3 text-right whitespace-nowrap">
+                          {!esYo && (
+                            <button
+                              onClick={() => window.confirm('ADVERTENCIA: se eliminará permanentemente al usuario de la empresa. Sus tareas pasarán a ti y sus oportunidades quedarán sin responsable. Esta acción es irreversible. ¿Continuar?') &&
+                                ejecutar(fila, () => eliminarUsuarioDeEmpresa(u.id),
+                                  'Usuario eliminado definitivamente de la empresa', 'Error al eliminar el usuario de la empresa')}
+                              disabled={ocupado}
+                              className="text-xs text-red-700 hover:text-red-900 font-bold disabled:text-gray-400"
+                            >
+                              Eliminar de la empresa
+                            </button>
+                          )}
+                        </td>
+                      )}
                     </tr>
                   )
                 })
