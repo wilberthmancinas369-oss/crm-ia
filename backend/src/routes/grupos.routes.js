@@ -6,7 +6,7 @@ import { autorizar } from '../middlewares/autorizarRol.js';
 import { autorizarGrupo } from '../middlewares/autorizarGrupo.js';
 import { createGrupo, listGrupos, listGruposConMiembros, listAsignables } from '../controllers/grupos.controller.js';
 import { invitarUsuario } from '../controllers/invitaciones.controller.js';
-import { renombrarGrupo, listGrupos, listGruposConMiembros, listAsignables } from '../controllers/grupos.controller.js';
+import { createGrupo, renombrarGrupo, eliminarGrupo, listGrupos, listGruposConMiembros, listAsignables } from '../controllers/grupos.controller.js';
 
 const router = Router();
 
@@ -53,5 +53,7 @@ router.patch(
   [autenticar, autorizar('renombrarGrupos'), ...validacionesGrupo, validarCampos],
   renombrarGrupo
 );
+
+
 
 export default router;

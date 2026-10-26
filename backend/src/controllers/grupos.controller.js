@@ -109,6 +109,44 @@ export const renombrarGrupo = async (req, res) => {
   }
 };
 
+// Elimina un grupo vacío y cancela sus invitaciones pendientes, todo en una transacción (RPC eliminar_grupo)
+export const eliminarGrupo = async (req, res) => {
+  try {
+    const { data: canceladas, error } = await supabase.rpc('eliminar_grupo', {
+      p_group_id: req.params.id,
+      p_company_id: req.company_id // Inyectado por el middleware autorizar
+    });
+
+    if (error) {
+      const mensaje = error.message || '';
+
+      // 22P02: el id no es un UUID válido
+      if (mensaje.includes('GRUPO_NO_ENCONTRADO') || error.code === '22P02') {
+        return res.status(404).json({ error: 'El grupo no existe en tu empresa' });
+      }
+      if (mensaje.includes('GRUPO_CON_MIEMBROS')) {
+        return res.status(409).json({ error: 'No se puede eliminar un grupo que tiene miembros. Muévelos a otro grupo primero.' });
+      }
+      if (mensaje.includes('GRUPO_CON_DATOS')) {
+        return res.status(409).json({ error: 'No se puede eliminar un grupo que tiene contactos u oportunidades.' });
+      }
+      // 23503: otra tabla todavía referencia al grupo
+      if (error.code === '23503') {
+        return res.status(409).json({ error: 'No se puede eliminar el grupo porque tiene información asociada.' });
+      }
+      throw error;
+    }
+
+    return res.json({
+      message: 'Grupo eliminado exitosamente',
+      invitacionesCanceladas: canceladas
+    });
+  } catch (error) {
+    console.error('Error al eliminar grupo:', error);
+    return res.status(500).json({ error: 'Error interno del servidor al eliminar el grupo' });
+  }
+};
+
 // Lista los grupos visibles para el usuario: los suyos, o todos si es Administrador
 export const listGrupos = async (req, res) => {
   try {
