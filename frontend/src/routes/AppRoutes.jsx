@@ -3,7 +3,9 @@ import AuthLayout from '../components/layout/AuthLayout'
 import DashboardLayout from '../components/layout/DashboardLayout'
 import ProtectedRoute from './ProtectedRoute'
 import RequierePermiso from './RequierePermiso'
-
+import ForgotPassword from '../pages/ForgotPassword'
+import VerifyRecoveryCode from '../pages/VerifyRecoveryCode'
+import ResetPassword from '../pages/ResetPassword'
 import Landing from '../pages/Landing'
 import Login from '../pages/Login'
 import RegistroEmpresa from '../pages/RegistroEmpresa'
@@ -22,6 +24,8 @@ export default function AppRoutes() {
         <Route path="/" element={<Landing />} />
         <Route path="/login" element={<Login />} />
         <Route path="/registro" element={<RegistroEmpresa />} />
+        <Route path="/olvidaste-password" element={<ForgotPassword />} /> 
+        <Route path="/nueva-password" element={<ResetPassword />} /> 
         <Route path="/invitacion/:token" element={<AceptarInvitacion />} />
       </Route>
 
@@ -45,7 +49,7 @@ export default function AppRoutes() {
           </Route>
         </Route>
       </Route>
-
+      
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   )
