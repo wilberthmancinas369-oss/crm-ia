@@ -22,7 +22,9 @@ export const PERMISOS = {
   crearGrupos:           { nivel: NIVELES.ADMINISTRADOR, alcance: 'empresa' },
   eliminarGrupos:        { nivel: NIVELES.ADMINISTRADOR, alcance: 'empresa' },
   verReporteGeneral:     { nivel: NIVELES.ADMINISTRADOR, alcance: 'empresa' },
-  administrarUsuarios:   { nivel: NIVELES.ADMINISTRADOR, alcance: 'empresa' }
+  administrarUsuarios:   { nivel: NIVELES.ADMINISTRADOR, alcance: 'empresa' },
+  renombrarGrupos:       { nivel: NIVELES.ADMINISTRADOR, alcance: 'empresa' },   // HU-14
+  eliminarGrupos:        { nivel: NIVELES.ADMINISTRADOR, alcance: 'empresa' },
 };
 
 const definicion = (permiso) => {

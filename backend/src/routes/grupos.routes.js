@@ -6,6 +6,7 @@ import { autorizar } from '../middlewares/autorizarRol.js';
 import { autorizarGrupo } from '../middlewares/autorizarGrupo.js';
 import { createGrupo, listGrupos, listGruposConMiembros, listAsignables } from '../controllers/grupos.controller.js';
 import { invitarUsuario } from '../controllers/invitaciones.controller.js';
+import { renombrarGrupo, listGrupos, listGruposConMiembros, listAsignables } from '../controllers/grupos.controller.js';
 
 const router = Router();
 
@@ -34,13 +35,23 @@ router.post(
   // Solo el Administrador crea grupos (HU-11)
   [autenticar, autorizar('crearGrupos'), ...validacionesGrupo, validarCampos],
   createGrupo
+  
 );
+
+
 
 router.post(
   '/:id/invitar',
   // El Jefe de Área solo invita a los grupos que dirige; el rol se valida en el controlador
   [autenticar, autorizar('invitarUsuarios'), autorizarGrupo('id'), ...validacionesInvitacion, validarCampos],
   invitarUsuario
+);
+
+router.patch(
+  '/:id',
+  // Solo el Administrador renombra grupos (HU-14); el controlador valida que el grupo sea de su empresa
+  [autenticar, autorizar('renombrarGrupos'), ...validacionesGrupo, validarCampos],
+  renombrarGrupo
 );
 
 export default router;
