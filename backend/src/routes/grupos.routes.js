@@ -4,7 +4,6 @@ import { validarCampos } from '../middlewares/validarCampos.js';
 import { autenticar } from '../middlewares/autenticar.js';
 import { autorizar } from '../middlewares/autorizarRol.js';
 import { autorizarGrupo } from '../middlewares/autorizarGrupo.js';
-import { createGrupo, listGrupos, listGruposConMiembros, listAsignables } from '../controllers/grupos.controller.js';
 import { invitarUsuario } from '../controllers/invitaciones.controller.js';
 import { createGrupo, renombrarGrupo, eliminarGrupo, listGrupos, listGruposConMiembros, listAsignables } from '../controllers/grupos.controller.js';
 
@@ -54,6 +53,11 @@ router.patch(
   renombrarGrupo
 );
 
-
+router.delete(
+  '/:id',
+  // Solo el Administrador elimina grupos (HU-14); el grupo debe estar vacío
+  [autenticar, autorizar('eliminarGrupos')],
+  eliminarGrupo
+);
 
 export default router;

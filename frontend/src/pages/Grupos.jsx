@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import FormularioGrupo from '../components/FormularioGrupo'
-import { listarGruposConMiembros } from '../services/grupos'
+import ErrorMessage from '../components/ErrorMessage'
+import { listarGruposConMiembros, renombrarGrupo, eliminarGrupo } from '../services/grupos'
 import { useAuth } from '../context/AuthContext'
 import { reenviarInvitacion, cancelarInvitacion } from '../services/invitaciones'
 import { tienePermisoEnGrupo } from '../hooks/useGruposPermitidos'
+
 
 const formatoFecha = (iso) =>
   new Date(iso).toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' })
@@ -13,17 +15,114 @@ const formatoFecha = (iso) =>
 const claseRol = (nivel) =>
   nivel >= 2 ? 'bg-purple-100 text-purple-700' : nivel === 1 ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-700'
 
-function TarjetaGrupo({ grupo, onAccionInvitacion }) {
+function TarjetaGrupo({ grupo, onAccionInvitacion, onRenombrar, onEliminar }) {
+  const [editando, setEditando] = useState(false)
+  const [nombre, setNombre] = useState(grupo.nombre)
+  const [errorNombre, setErrorNombre] = useState('')
+  const [guardando, setGuardando] = useState(false)
+
+  const tieneMiembros = grupo.miembros.length > 0
+
+  const abrirEdicion = () => {
+    setNombre(grupo.nombre)
+    setErrorNombre('')
+    setEditando(true)
+  }
+
+  const cancelarEdicion = () => {
+    setEditando(false)
+    setErrorNombre('')
+  }
+
+  const guardarNombre = async (e) => {
+    e.preventDefault()
+    const nuevo = nombre.trim()
+    if (!nuevo) return setErrorNombre('El nombre del grupo es obligatorio')
+    if (nuevo.length > 100) return setErrorNombre('El nombre no puede exceder los 100 caracteres')
+    if (nuevo === grupo.nombre) return cancelarEdicion()
+    if (!window.confirm(`¿Renombrar el grupo "${grupo.nombre}" a "${nuevo}"?`)) return
+
+    try {
+      setGuardando(true)
+      setErrorNombre('')
+      await onRenombrar(grupo, nuevo)
+      setEditando(false)
+    } catch (err) {
+      setErrorNombre(
+        err.response?.data?.error || err.response?.data?.errors?.[0]?.msg || 'No se pudo renombrar el grupo'
+      )
+    } finally {
+      setGuardando(false)
+    }
+  }
+
   return (
     <section className="bg-white p-5 rounded-lg shadow-sm border border-gray-200 space-y-4">
       <div>
         <div className="flex items-baseline justify-between gap-2">
-          <h2 className="text-lg font-semibold text-gray-800">{grupo.nombre}</h2>
+          {editando ? (
+            <form onSubmit={guardarNombre} className="flex-1 space-y-2">
+              <input
+                autoFocus
+                type="text"
+                value={nombre}
+                onChange={(e) => setNombre(e.target.value)}
+                onKeyDown={(e) => e.key === 'Escape' && cancelarEdicion()}
+                aria-label="Nuevo nombre del grupo"
+                className={`w-full border rounded-md p-2 text-sm focus:outline-none focus:ring-2 ${
+                  errorNombre ? 'border-red-500 focus:ring-red-200' : 'border-gray-300 focus:ring-blue-500'
+                }`}
+              />
+              <div className="flex gap-3">
+                <button
+                  type="submit"
+                  disabled={guardando}
+                  className="text-xs text-blue-600 hover:underline font-medium disabled:text-gray-400"
+                >
+                  {guardando ? 'Guardando...' : 'Guardar'}
+                </button>
+                <button
+                  type="button"
+                  onClick={cancelarEdicion}
+                  disabled={guardando}
+                  className="text-xs text-gray-600 hover:underline font-medium"
+                >
+                  Cancelar
+                </button>
+              </div>
+              <ErrorMessage>{errorNombre}</ErrorMessage>
+            </form>
+          ) : (
+            <h2 className="text-lg font-semibold text-gray-800">{grupo.nombre}</h2>
+          )}
           <span className="text-xs text-gray-500">
             {grupo.miembros.length} {grupo.miembros.length === 1 ? 'miembro' : 'miembros'}
           </span>
         </div>
         {grupo.descripcion && <p className="text-sm text-gray-500">{grupo.descripcion}</p>}
+
+        {!editando && (onRenombrar || onEliminar) && (
+          <div className="flex flex-wrap items-center gap-3 pt-2">
+            {onRenombrar && (
+              <button onClick={abrirEdicion} className="text-xs text-blue-600 hover:underline font-medium">
+                Renombrar
+              </button>
+            )}
+            {onEliminar && (
+              <button
+                onClick={() => onEliminar(grupo)}
+                disabled={tieneMiembros}
+                title={tieneMiembros ? 'Solo se puede eliminar un grupo sin miembros' : undefined}
+                className="text-xs text-red-600 hover:underline font-medium disabled:text-gray-400 disabled:no-underline disabled:cursor-not-allowed"
+              >
+                Eliminar
+              </button>
+            )}
+            {onEliminar && tieneMiembros && (
+              <span className="text-[10px] text-gray-400">Para eliminarlo, primero mueve a sus miembros a otro grupo.</span>
+            )}
+          </div>
+        )}
       </div>
 
       {grupo.miembros.length === 0 ? (
@@ -122,6 +221,31 @@ export default function Grupos() {
     }
   }
 
+  // Si falla (por ejemplo 409 por nombre duplicado), el error llega a la tarjeta, que lo muestra
+  const manejarRenombrar = async (grupo, nombre) => {
+    await renombrarGrupo(grupo.id, nombre)
+    await cargarGrupos()
+  }
+
+  const manejarEliminar = async (grupo) => {
+    const pendientes = grupo.invitacionesPendientes.length
+    const aviso =
+      pendientes > 0
+        ? `Se cancelarán ${pendientes} ${pendientes === 1 ? 'invitación pendiente' : 'invitaciones pendientes'} de este grupo.`
+        : 'Se cancelarán las invitaciones pendientes del grupo, si las hay.'
+
+    if (!window.confirm(`¿Eliminar el grupo "${grupo.nombre}"?\n\n${aviso}\nEsta acción no se puede deshacer.`)) return
+
+    try {
+      await eliminarGrupo(grupo.id)
+      alert('Grupo eliminado exitosamente')
+    } catch (err) {
+      alert(err.response?.data?.error || 'Hubo un error al eliminar el grupo')
+    }
+    // Se recarga en ambos casos: si el servidor rechazó el borrado, la lista puede estar desactualizada
+    await cargarGrupos()
+  }
+
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
       {/* Encabezado con los botones de acción segun permisos */}
@@ -159,6 +283,8 @@ export default function Grupos() {
                 key={grupo.id}
                 grupo={grupo}
                 onAccionInvitacion={tienePermisoEnGrupo(perfil, 'gestionarInvitaciones', grupo.id) ? manejarAccionInvitacion : null}
+                onRenombrar={puede('renombrarGrupos') ? manejarRenombrar : null}
+                onEliminar={puede('eliminarGrupos') ? manejarEliminar : null}
               />
             ))
           )}
@@ -166,4 +292,5 @@ export default function Grupos() {
       </div>
     </div>
   )
+
 }
