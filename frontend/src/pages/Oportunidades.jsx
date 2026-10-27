@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import SugerenciaIA from '../components/SugerenciaIA.jsx';
 import { useForm } from 'react-hook-form';
 import { useCRM } from '../context/CRMContext.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
@@ -277,6 +278,7 @@ function DetalleOportunidad({ id, onCerrar, onReasignada }) {
         <button onClick={onCerrar} aria-label="Cerrar detalle" className="text-gray-400 hover:text-gray-600 text-sm font-bold">✕</button>
       </div>
 
+      <SugerenciaIA key={id} oportunidadId={id} />
       <section>
         <h4 className="text-xs font-semibold uppercase text-gray-500 mb-2">Responsable</h4>
         <div className="flex items-center justify-between gap-2">

@@ -16,12 +16,14 @@ import {
   getHistorialReasignaciones
 } from '../controllers/oportunidades.controller.js';
 import { ETAPAS } from '../config/crm.js';
+import { sugerirOportunidad } from '../controllers/ia.controller.js';
 
 const router = Router();
 
 // Todas las rutas requieren sesión; autorizar deja la empresa en req.company_id y los grupos
 // visibles en req.alcance (Agente y Jefe: sus grupos; Administrador: toda la empresa)
 router.use(autenticar, autorizar('gestionarCRM'));
+router.post('/:id/sugerencia-ia', [param('id').isUUID().withMessage('Oportunidad no válida'), validarCampos], sugerirOportunidad);
 
 // Rutas de lectura
 router.get('/', getOportunidades);
