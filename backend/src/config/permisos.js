@@ -20,9 +20,10 @@ export const PERMISOS = {
   verReporteGrupo:       { nivel: NIVELES.JEFE_AREA,     alcance: 'grupo' },
   asignarResponsable:    { nivel: NIVELES.JEFE_AREA,     alcance: 'grupo' },   // responsable y colaboradores de oportunidades ajenas (HU 4.1)
   crearGrupos:           { nivel: NIVELES.ADMINISTRADOR, alcance: 'empresa' },
-  eliminarGrupos:        { nivel: NIVELES.ADMINISTRADOR, alcance: 'empresa' },
+  eliminarGrupos:        { nivel: NIVELES.ADMINISTRADOR, alcance: 'empresa' },   // HU-14
   verReporteGeneral:     { nivel: NIVELES.ADMINISTRADOR, alcance: 'empresa' },
-  administrarUsuarios:   { nivel: NIVELES.ADMINISTRADOR, alcance: 'empresa' }
+  administrarUsuarios:   { nivel: NIVELES.ADMINISTRADOR, alcance: 'empresa' },
+  renombrarGrupos:       { nivel: NIVELES.ADMINISTRADOR, alcance: 'empresa' }    // HU-14
 };
 
 const definicion = (permiso) => {
