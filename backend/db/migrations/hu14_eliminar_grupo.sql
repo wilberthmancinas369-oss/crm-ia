@@ -1,4 +1,5 @@
 -- HU-14: eliminar un grupo vacío y cancelar sus invitaciones pendientes en una sola transacción.
+-- Requiere: hu9_invitaciones_canceladas.sql (estado 'cancelada'). Se puede correr más de una vez.
 -- Devuelve cuántas invitaciones pendientes se cancelaron.
 create or replace function eliminar_grupo(p_group_id uuid, p_company_id uuid)
 returns integer

@@ -34,10 +34,7 @@ router.post(
   // Solo el Administrador crea grupos (HU-11)
   [autenticar, autorizar('crearGrupos'), ...validacionesGrupo, validarCampos],
   createGrupo
-  
 );
-
-
 
 router.post(
   '/:id/invitar',

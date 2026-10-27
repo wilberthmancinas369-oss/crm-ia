@@ -7,7 +7,6 @@ import { useAuth } from '../context/AuthContext'
 import { reenviarInvitacion, cancelarInvitacion } from '../services/invitaciones'
 import { tienePermisoEnGrupo } from '../hooks/useGruposPermitidos'
 
-
 const formatoFecha = (iso) =>
   new Date(iso).toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' })
 
@@ -292,5 +291,4 @@ export default function Grupos() {
       </div>
     </div>
   )
-
 }
