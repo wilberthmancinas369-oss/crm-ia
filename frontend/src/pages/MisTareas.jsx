@@ -175,7 +175,7 @@ export default function MisTareas() {
             <div className="p-4 border-b border-gray-100">
               <h2 id="lista-tareas" className="font-semibold text-gray-700">{filtros.responsable_id ? 'Tareas encontradas' : 'Mis tareas'}</h2>
             </div>
-            {cargandoLista ? <p role="status" className="text-sm text-gray-500 p-6">Cargando tareas...</p> : errorLista ? null : !tareas.length ? <p className="text-sm text-gray-500 text-center p-6">{Object.keys(filtros).length ? 'No se encontraron resultados con los filtros seleccionados.' : 'Aún no tienes tareas asignadas.'}</p> : (
+            {cargandoLista ? <p role="status" className="text-sm text-gray-500 p-6">Cargando tareas...</p> : errorLista ? null : !tareas.length ? <p role="status" className="text-sm text-gray-500 text-center p-6">{Object.keys(filtros).length ? 'No se encontraron resultados con los filtros seleccionados.' : 'Aún no tienes tareas asignadas.'}</p> : (
               <ul className="divide-y divide-gray-100">
                 {tareas.map((tarea) => (
                   <li key={tarea.id} className="p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">

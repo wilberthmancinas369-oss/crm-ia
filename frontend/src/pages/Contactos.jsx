@@ -275,7 +275,7 @@ export default function Contactos() {
                 {cargando ? (
                   <tr><td colSpan="5" className="text-center py-6 text-gray-500" role="status">Cargando contactos...</td></tr>
                 ) : error ? null : contactos.length === 0 ? (
-                  <tr><td colSpan="5" className="text-center py-6 text-gray-500">{Object.keys(filtros).length ? 'No se encontraron resultados con los filtros seleccionados.' : 'No hay contactos registrados.'}</td></tr>
+                  <tr><td colSpan="5" className="text-center py-6 text-gray-500"><p role="status">{Object.keys(filtros).length ? 'No se encontraron resultados con los filtros seleccionados.' : 'No hay contactos registrados.'}</p></td></tr>
                 ) : (
                   contactos.map((c) => (
                     <tr key={c.id} className={`hover:bg-gray-50 transition ${ficha?.id === c.id ? 'bg-blue-50' : ''}`}>

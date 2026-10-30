@@ -473,7 +473,7 @@ export default function Oportunidades() {
                 {cargando ? (
                   <tr><td colSpan="7" className="text-center py-6 text-gray-400">Cargando oportunidades…</td></tr>
                 ) : error ? null : oportunidades.length === 0 ? (
-                  <tr><td colSpan="7" className="text-center py-6 text-gray-500">{Object.keys(filtros).length ? 'No se encontraron resultados con los filtros seleccionados.' : 'No hay oportunidades registradas.'}</td></tr>
+                  <tr><td colSpan="7" className="text-center py-6 text-gray-500"><p role="status">{Object.keys(filtros).length ? 'No se encontraron resultados con los filtros seleccionados.' : 'No hay oportunidades registradas.'}</p></td></tr>
                 ) : oportunidades.map((o) => (
                   <tr key={o.id} className={`hover:bg-gray-50 transition ${seleccionada === o.id ? 'bg-blue-50' : ''}`}>
                     <td className="px-4 py-3 font-medium text-gray-800">{o.nombre_oportunidad}</td>

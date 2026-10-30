@@ -145,3 +145,98 @@ for (const lista of ['contactos', 'oportunidades', 'tareas']) {
     assert.deepEqual(await listar(lista, { estado: '   ', responsable_id: '', q: ' ' }), await listar(lista));
   });
 }
+
+// HU-12: los mismos datos coinciden en otra empresa y otro grupo, para detectar
+// consultas que olviden aplicar el alcance antes o después de los filtros.
+const escenariosAislamiento = [
+  { lista: 'contactos', filtros: { nombre: 'Ana López', empresa: 'ACME', estado: 'Activo' }, propios: ['c1'], empresa: ['c1', 'c2'] },
+  { lista: 'oportunidades', filtros: { q: 'ACME', etapa: 'Propuesta', responsable_id: otro, monto_min: '100', monto_max: '100' }, propios: ['o1'], empresa: ['o1', 'o2'] },
+  { lista: 'tareas', filtros: { q: 'Ana', estado: 'Pendiente', vencimiento: 'proximas_24h', responsable_id: 'todos' }, propios: ['t1', 't4'], empresa: ['t1', 't2', 't4', 't5'] }
+];
+
+for (const [rol, nivel] of [['Agente', 0], ['Jefe de Área', 1], ['Administrador', 2]]) {
+  for (const escenario of escenariosAislamiento) {
+    test(`${rol}: ${escenario.lista} conserva su alcance aunque se manipulen empresa, grupo y expresiones`, async () => {
+      perfilService.obtener = async () => ({ usuario: { id: yo }, empresa: { id: 'e1' }, grupos: [{ id: 'g1', nivel }] });
+      const resultado = await listar(escenario.lista, {
+        ...escenario.filtros,
+        company_id: 'e2', group_id: 'g2', grupo_id: 'g2',
+        or: '(company_id.eq.e2,group_id.eq.g2)', alcance: 'todos'
+      });
+      assert.equal(resultado.status, 200);
+      assert.deepEqual(ids(resultado), nivel === 2 ? escenario.empresa : escenario.propios);
+      assert.ok(resultado.body.every((fila) => fila.company_id === 'e1'));
+    });
+  }
+}
+
+for (const { lista } of escenariosAislamiento) {
+  test(`${lista}: una coincidencia exclusiva fuera del alcance devuelve 200 y []`, async () => {
+    if (lista === 'contactos') {
+      tablas.contactos[1].nombre = 'Solo ajeno';
+      tablas.contactos[2].nombre = 'Solo ajeno';
+    } else if (lista === 'oportunidades') {
+      tablas.oportunidades[1].nombre_oportunidad = 'Solo ajeno';
+      tablas.oportunidades[2].nombre_oportunidad = 'Solo ajeno';
+    } else {
+      tablas.tareas[1].titulo = 'Solo ajeno';
+      tablas.tareas[2].titulo = 'Solo ajeno';
+      tablas.tareas[4].titulo = 'Solo ajeno';
+      // Incluye el camino de oportunidad para comprobar ambos joins de tareas.
+      tablas.tareas.push({ ...tablas.tareas[2], id: 't7', contacto_id: null, oportunidad_id: 'o3' });
+    }
+    const datosAntes = JSON.stringify(tablas);
+    const resultado = await listar(lista, {
+      [lista === 'contactos' ? 'nombre' : 'q']: 'Solo ajeno',
+      ...(lista === 'tareas' ? { responsable_id: 'todos' } : {})
+    });
+    assert.equal(resultado.status, 200);
+    assert.deepEqual(resultado.body, []);
+    assert.equal(JSON.stringify(tablas), datosAntes, 'La búsqueda no modifica ni borra registros');
+    const sinFiltros = await listar(lista);
+    assert.equal(sinFiltros.status, 200);
+    assert.ok(sinFiltros.body.length > 0, 'Limpiar permite recuperar el listado autorizado');
+  });
+
+  test(`${lista}: sin perfil o sin grupos no permite consultar con filtros`, async () => {
+    const filtros = lista === 'tareas' ? { responsable_id: 'todos' } : {};
+    perfilService.obtener = async () => null;
+    assert.equal((await listar(lista, filtros)).status, 403);
+    perfilService.obtener = async () => ({ usuario: { id: yo }, empresa: { id: 'e1' }, grupos: [] });
+    assert.equal((await listar(lista, filtros)).status, 403);
+  });
+
+  test(`${lista}: un error de base de datos responde 500 y no se presenta como búsqueda vacía`, async () => {
+    supabase.from = () => { throw new Error('Fallo de consulta simulado'); };
+    const resultado = await listar(lista);
+    assert.equal(resultado.status, 500);
+    assert.ok(resultado.body.error);
+    assert.equal(Array.isArray(resultado.body), false);
+  });
+}
+
+test('una cuenta con dos grupos autorizados puede consultar ambos, pero no otra empresa', async () => {
+  perfilService.obtener = async () => ({ usuario: { id: yo }, empresa: { id: 'e1' }, grupos: [{ id: 'g1', nivel: 0 }, { id: 'g2', nivel: 1 }] });
+  for (const escenario of escenariosAislamiento) {
+    assert.deepEqual(ids(await listar(escenario.lista, escenario.filtros)), escenario.empresa);
+  }
+});
+
+test('responsables ajenos no revelan registros de oportunidades ni tareas', async () => {
+  tablas.oportunidades[1].responsable_id = ajeno;
+  tablas.oportunidades[2].responsable_id = ajeno;
+  for (const lista of ['oportunidades', 'tareas']) {
+    const resultado = await listar(lista, { responsable_id: ajeno });
+    assert.equal(resultado.status, 200);
+    assert.deepEqual(resultado.body, []);
+  }
+});
+
+for (const lista of ['contactos', 'oportunidades', 'tareas']) {
+  test(`${lista}: rechaza un parámetro de búsqueda repetido sin ejecutar una consulta`, async () => {
+    supabase.from = () => { throw new Error('No debe consultarse la base'); };
+    const campo = lista === 'contactos' ? 'nombre' : 'q';
+    const respuesta = await fetch(`${baseUrl}/${lista}?${campo}=Ana&${campo}=Luis`, { headers: { Authorization: 'Bearer prueba' } });
+    assert.equal(respuesta.status, 400);
+  });
+}

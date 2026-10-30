@@ -164,3 +164,33 @@ navegador con datos ficticios de las tres pantallas. Se comprobaron búsqueda
 combinada, Enter, Limpiar, lista vacía, error de rango y responsables de tareas.
 También se comprobó que completar una tarea la retire del filtro Pendiente y que
 los filtros se adapten a móvil. Esta revisión no modifica Supabase ni envía correos.
+
+## Aislamiento y búsquedas sin resultados (cuarta mini tarea)
+
+Se amplió `backend/tests/filtros_listado.test.js` con 23 pruebas de aceptación.
+Se utilizan datos con coincidencias iguales en la empresa propia, otra empresa
+y otro grupo para detectar fugas aunque el texto y los demás filtros coincidan.
+
+| Caso comprobado | Resultado esperado y obtenido |
+|---|---|
+| Agente o Jefe consulta las tres listas con filtros combinados. | Solo registros de su empresa y sus grupos autorizados. |
+| Se manipulan `company_id`, `group_id`, `grupo_id`, `alcance` o `or`. | Los parámetros no amplían el alcance definido por la sesión. |
+| Administrador consulta las tres listas. | Puede ver todos los grupos de su empresa; nunca registros de otra empresa. |
+| Usuario pertenece a dos grupos autorizados. | Puede consultar ambos, conservando el aislamiento de empresa. |
+| Tareas por otro responsable o `todos`. | Se mantienen las restricciones por empresa y por el grupo de su contacto u oportunidad. |
+| Solo existen coincidencias en registros ajenos. | `200` y `[]`, sin revelar la existencia de esos registros. |
+| No hay perfil o grupos asignados. | `403`; sin sesión se mantiene `401`. |
+| Se repite un parámetro conocido de búsqueda. | `400` antes de consultar la base de datos. |
+| Falla la consulta a la base de datos. | `500` con error; no se devuelve un arreglo vacío como si la búsqueda hubiera sido válida. |
+| Se busca sin coincidencias y después se limpia. | Los datos permanecen intactos y el listado autorizado se recupera. |
+
+En las tres pantallas se conserva el mensaje «No se encontraron resultados con
+los filtros seleccionados», con el botón Limpiar disponible. Si la lista inicial
+está vacía, se mantiene su mensaje específico. Los mensajes vacíos tienen
+`role="status"` para anunciarlos también a lectores de pantalla. No se cambian
+colores, distribución ni controles.
+
+Resultado de ejecución: **235 pruebas del backend aprobadas, 0 fallidas**, y
+compilación del frontend correcta. Las pruebas HTTP recorren las rutas reales con
+Supabase simulado; no se ejecutaron contra la base del equipo ni se modificaron
+sus datos. La revisión no requirió cambiar los permisos ni las consultas de producción.
