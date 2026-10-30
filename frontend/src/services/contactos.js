@@ -1,7 +1,7 @@
 import { api } from './api';
 
-export async function listarContactos() {
-  const { data } = await api.get('/contactos');
+export async function listarContactos(filtros = {}) {
+  const { data } = await api.get('/contactos', { params: filtros });
   return data;
 }
 

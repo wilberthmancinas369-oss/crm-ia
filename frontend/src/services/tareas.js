@@ -1,7 +1,7 @@
 import { api } from './api';
 
-export async function listarMisTareas() {
-  const { data } = await api.get('/tareas');
+export async function listarMisTareas(filtros = {}) {
+  const { data } = await api.get('/tareas', { params: filtros });
   return data;
 }
 

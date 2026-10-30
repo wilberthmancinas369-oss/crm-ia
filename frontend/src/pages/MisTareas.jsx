@@ -5,6 +5,9 @@ import { listarMisTareas, crearTarea, actualizarTarea, completarTarea } from '..
 import { listarContactos } from '../services/contactos';
 import { listarOportunidades } from '../services/oportunidades';
 import ErrorMessage from '../components/ErrorMessage';
+import FiltrosListado from '../components/FiltrosListado';
+import { useListadoFiltrado } from '../hooks/useListadoFiltrado';
+import { useResponsablesFiltro } from '../hooks/useResponsablesFiltro';
 
 const claseInput = 'w-full border border-gray-300 rounded-md p-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-secondary)]';
 const mensajeError = (error, defecto) =>
@@ -17,7 +20,8 @@ const colorEstado = {
 
 export default function MisTareas() {
   const { perfil } = useAuth();
-  const [tareas, setTareas] = useState([]);
+  const { datos: tareas, filtros, setFiltros, cargando: cargandoLista, error: errorLista, recargar } = useListadoFiltrado(listarMisTareas);
+  const { responsables, error: errorResponsables, cargando: cargandoResponsables } = useResponsablesFiltro();
   const [contactos, setContactos] = useState([]);
   const [oportunidades, setOportunidades] = useState([]);
   const [cargando, setCargando] = useState(true);
@@ -34,10 +38,9 @@ export default function MisTareas() {
     let cancelado = false;
     setCargando(true);
     setErrorCarga('');
-    Promise.all([listarMisTareas(), listarContactos(), listarOportunidades()])
-      .then(([misTareas, listaContactos, listaOportunidades]) => {
+    Promise.all([listarContactos(), listarOportunidades()])
+      .then(([listaContactos, listaOportunidades]) => {
         if (cancelado) return;
-        setTareas(misTareas);
         setContactos(listaContactos);
         setOportunidades(listaOportunidades);
       })
@@ -51,20 +54,13 @@ export default function MisTareas() {
   const onCrear = async ({ titulo, fecha_limite, tipoVinculo, vinculo_id }) => {
     setMensaje(null);
     try {
-      const tarea = await crearTarea({
+      await crearTarea({
         titulo: titulo.trim(),
         fecha_limite: new Date(fecha_limite).toISOString(),
         responsable_id: perfil.usuario.id,
         [tipoVinculo === 'contacto' ? 'contacto_id' : 'oportunidad_id']: vinculo_id
       });
-      // La respuesta de alta no trae el nombre del vínculo; se toma del catálogo ya cargado.
-      const vinculada = {
-        ...tarea,
-        contactos: contactos.find((contacto) => contacto.id === tarea.contacto_id),
-        oportunidades: oportunidades.find((oportunidad) => oportunidad.id === tarea.oportunidad_id)
-      };
-      setTareas((actuales) => [...actuales, vinculada]
-        .sort((a, b) => new Date(a.fecha_limite) - new Date(b.fecha_limite)));
+      await recargar();
       reset();
       setMensaje({ tipo: 'exito', texto: 'Tarea creada correctamente.' });
     } catch (error) {
@@ -72,15 +68,13 @@ export default function MisTareas() {
     }
   };
 
-  // Reemplaza la tarea en la lista conservando los nombres del vínculo, que la respuesta no trae
+  // Recarga con los filtros activos: una tarea completada puede dejar de coincidir.
   const guardarCambio = async (tarea, accion, textoError) => {
     setMensaje(null);
     setProcesando(tarea.id);
     try {
-      const actualizada = await accion();
-      setTareas((actuales) => actuales.map((t) => (t.id === tarea.id
-        ? { ...actualizada, contactos: tarea.contactos, oportunidades: tarea.oportunidades }
-        : t)));
+      await accion();
+      await recargar();
     } catch (error) {
       setMensaje({ tipo: 'error', texto: mensajeError(error, textoError) });
     } finally {
@@ -99,7 +93,7 @@ export default function MisTareas() {
     <div className="p-4 sm:p-6 max-w-7xl mx-auto space-y-6">
       <div className="border-b pb-4 border-gray-200">
         <h1 className="text-2xl font-bold text-gray-800">Mis tareas</h1>
-        <p className="text-sm text-gray-500 mt-1">Consulta, crea y completa las tareas que tienes asignadas.</p>
+        <p className="text-sm text-gray-500 mt-1">Consulta, crea y completa tareas.</p>
       </div>
 
       {cargando ? <p role="status" className="text-sm text-gray-500">Cargando tareas...</p> : errorCarga ? (
@@ -158,11 +152,30 @@ export default function MisTareas() {
             {mensaje && <p role={mensaje.tipo === 'error' ? 'alert' : 'status'} className={`mt-4 p-3 rounded-md text-sm ${mensaje.tipo === 'error' ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'}`}>{mensaje.texto}</p>}
           </section>
 
+          <FiltrosListado cargando={cargandoLista} onAplicar={setFiltros} campos={[
+            { nombre: 'q', etiqueta: 'Buscar tarea', placeholder: 'Título de la tarea' },
+            { nombre: 'estado', etiqueta: 'Estado', opciones: [
+              { valor: '', etiqueta: 'Todos los estados' }, ...Object.keys(colorEstado).map((estado) => ({ valor: estado, etiqueta: estado }))
+            ] },
+            { nombre: 'vencimiento', etiqueta: 'Vencimiento', opciones: [
+              { valor: '', etiqueta: 'Cualquier vencimiento' }, { valor: 'vencidas', etiqueta: 'Vencidas' },
+              { valor: 'proximas_24h', etiqueta: 'Próximas 24 horas' }, { valor: 'sin_vencer', etiqueta: 'Sin vencer' }
+            ] },
+            { nombre: 'responsable_id', etiqueta: 'Responsable', deshabilitado: cargandoResponsables || Boolean(errorResponsables), opciones: [
+              { valor: '', etiqueta: 'Mis tareas' }, { valor: 'todos', etiqueta: 'Todos los responsables' },
+              ...responsables.filter((usuario) => usuario.id !== perfil.usuario.id).map((usuario) => ({ valor: usuario.id, etiqueta: usuario.nombre || usuario.email || 'Sin nombre' }))
+            ] }
+          ]} />
+          {errorResponsables && <p role="alert" className="text-sm text-red-700">{errorResponsables}</p>}
+          {errorLista && <div role="alert" className="bg-red-100 text-red-800 p-3 rounded-md text-sm">
+            <p>{errorLista}</p><button type="button" className="btn mt-2" onClick={recargar}>Reintentar</button>
+          </div>}
+
           <section className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden" aria-labelledby="lista-tareas">
             <div className="p-4 border-b border-gray-100">
-              <h2 id="lista-tareas" className="font-semibold text-gray-700">Tareas asignadas a mí</h2>
+              <h2 id="lista-tareas" className="font-semibold text-gray-700">{filtros.responsable_id ? 'Tareas encontradas' : 'Mis tareas'}</h2>
             </div>
-            {!tareas.length ? <p className="text-sm text-gray-500 text-center p-6">Aún no tienes tareas asignadas.</p> : (
+            {cargandoLista ? <p role="status" className="text-sm text-gray-500 p-6">Cargando tareas...</p> : errorLista ? null : !tareas.length ? <p className="text-sm text-gray-500 text-center p-6">{Object.keys(filtros).length ? 'No se encontraron resultados con los filtros seleccionados.' : 'Aún no tienes tareas asignadas.'}</p> : (
               <ul className="divide-y divide-gray-100">
                 {tareas.map((tarea) => (
                   <li key={tarea.id} className="p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">

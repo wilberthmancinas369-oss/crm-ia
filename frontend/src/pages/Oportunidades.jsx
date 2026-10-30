@@ -4,6 +4,8 @@ import SugerenciaIA from '../components/SugerenciaIA.jsx';
 import { useForm } from 'react-hook-form';
 import { useCRM } from '../context/CRMContext.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
+import FiltrosListado from '../components/FiltrosListado.jsx';
+import { useResponsablesFiltro } from '../hooks/useResponsablesFiltro.js';
 import {
   crearOportunidad,
   eliminarOportunidad,
@@ -401,7 +403,8 @@ function DetalleOportunidad({ id, onCerrar, onReasignada }) {
 // ---------- Página ----------
 export default function Oportunidades() {
   const { contactos } = useCRM();
-  const { oportunidades, setOportunidades, cargando, error, actualizar, recargar } = useOportunidades();
+  const { oportunidades, filtros, setFiltros, cargando, error, actualizar, recargar } = useOportunidades();
+  const { responsables, error: errorResponsables, cargando: cargandoResponsables } = useResponsablesFiltro();
   const [seleccionada, setSeleccionada] = useState(null);
 
   const cambiarEtapa = async (id, etapa) => {
@@ -416,7 +419,7 @@ export default function Oportunidades() {
     if (!confirm('¿Deseas eliminar esta oportunidad?')) return;
     try {
       await eliminarOportunidad(id);
-      setOportunidades((prev) => prev.filter((o) => o.id !== id));
+      await recargar();
       if (seleccionada === id) setSeleccionada(null);
     } catch (err) {
       alert(mensajeDelServidor(err, 'Error al eliminar la oportunidad'));
@@ -433,9 +436,23 @@ export default function Oportunidades() {
         <Link to="/app/pipeline" className="btn shrink-0">Ver pipeline</Link>
       </div>
 
-      <FormularioOportunidad contactos={contactos} onCreada={(nueva) => setOportunidades((prev) => [nueva, ...prev])} />
+      <FormularioOportunidad contactos={contactos} onCreada={recargar} />
 
-      {error && <p role="alert" className="p-3 rounded-md text-sm bg-red-100 text-red-800">{error}</p>}
+      <FiltrosListado cargando={cargando} onAplicar={(valores) => { setSeleccionada(null); setFiltros(valores); }} campos={[
+        { nombre: 'q', etiqueta: 'Buscar oportunidad', placeholder: 'Nombre de la oportunidad' },
+        { nombre: 'etapa', etiqueta: 'Etapa', opciones: [{ valor: '', etiqueta: 'Todas las etapas' }, ...ETAPAS.map((etapa) => ({ valor: etapa.valor, etiqueta: etapa.valor }))] },
+        { nombre: 'responsable_id', etiqueta: 'Responsable', deshabilitado: cargandoResponsables || Boolean(errorResponsables), opciones: [
+          { valor: '', etiqueta: cargandoResponsables ? 'Cargando responsables...' : 'Todos los responsables' },
+          ...responsables.map((usuario) => ({ valor: usuario.id, etiqueta: usuario.nombre || usuario.email || 'Sin nombre' }))
+        ] },
+        { nombre: 'monto_min', etiqueta: 'Monto mínimo', tipo: 'number', placeholder: 'Desde' },
+        { nombre: 'monto_max', etiqueta: 'Monto máximo', tipo: 'number', placeholder: 'Hasta' }
+      ]} />
+      {errorResponsables && <p role="alert" className="text-sm text-red-700">{errorResponsables}</p>}
+
+      {error && <div role="alert" className="p-3 rounded-md text-sm bg-red-100 text-red-800">
+        <p>{error}</p><button type="button" className="btn mt-2" onClick={recargar}>Reintentar</button>
+      </div>}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
         <div className={`bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden ${seleccionada ? 'lg:col-span-2' : 'lg:col-span-3'}`}>
@@ -455,8 +472,8 @@ export default function Oportunidades() {
               <tbody className="divide-y divide-gray-100">
                 {cargando ? (
                   <tr><td colSpan="7" className="text-center py-6 text-gray-400">Cargando oportunidades…</td></tr>
-                ) : oportunidades.length === 0 ? (
-                  <tr><td colSpan="7" className="text-center py-6 text-gray-400">No hay oportunidades registradas.</td></tr>
+                ) : error ? null : oportunidades.length === 0 ? (
+                  <tr><td colSpan="7" className="text-center py-6 text-gray-500">{Object.keys(filtros).length ? 'No se encontraron resultados con los filtros seleccionados.' : 'No hay oportunidades registradas.'}</td></tr>
                 ) : oportunidades.map((o) => (
                   <tr key={o.id} className={`hover:bg-gray-50 transition ${seleccionada === o.id ? 'bg-blue-50' : ''}`}>
                     <td className="px-4 py-3 font-medium text-gray-800">{o.nombre_oportunidad}</td>

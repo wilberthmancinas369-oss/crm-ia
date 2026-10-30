@@ -1,7 +1,9 @@
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useCRM } from '../context/CRMContext.jsx';
-import { obtenerContactoPorId } from '../services/contactos.js';
+import { obtenerContactoPorId, listarContactos } from '../services/contactos.js';
+import FiltrosListado from '../components/FiltrosListado.jsx';
+import { useListadoFiltrado } from '../hooks/useListadoFiltrado.js';
 import { registrarInteraccion } from '../services/interacciones.js';
 import ErrorMessage from '../components/ErrorMessage.jsx';
 import SelectorGrupo from '../components/SelectorGrupo.jsx';
@@ -141,7 +143,8 @@ function FichaContacto({ ficha, onCerrar, onInteraccionCreada }) {
 }
 
 export default function Contactos() {
-  const { contactos, agregarContacto, borrarContacto, cargando } = useCRM();
+  const { agregarContacto, borrarContacto } = useCRM();
+  const { datos: contactos, filtros, setFiltros, cargando, error, recargar } = useListadoFiltrado(listarContactos);
   const gruposPermitidos = useGruposPermitidos('gestionarCRM');
   const [ficha, setFicha] = useState(null);
   const [mostrarRedes, setMostrarRedes] = useState(false);
@@ -170,6 +173,7 @@ export default function Contactos() {
   const onCrearContacto = async (datos) => {
     try {
       await agregarContacto(datos);
+      await recargar();
       reset();
       setMostrarRedes(false);
     } catch (error) {
@@ -181,15 +185,12 @@ export default function Contactos() {
     if (!confirm('¿Deseas eliminar este contacto?')) return;
     try {
       await borrarContacto(id);
+      await recargar();
       if (ficha?.id === id) setFicha(null);
     } catch (error) {
       alert(mensajeDelServidor(error, 'Error al eliminar el contacto'));
     }
   };
-
-  if (cargando) {
-    return <div className="flex justify-center items-center h-64 text-gray-500 font-medium">Cargando contactos...</div>;
-  }
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
@@ -246,6 +247,17 @@ export default function Contactos() {
         </form>
       </section>
 
+      <FiltrosListado cargando={cargando} onAplicar={(valores) => { setFicha(null); setFiltros(valores); }} campos={[
+        { nombre: 'nombre', etiqueta: 'Nombre o apellido', placeholder: 'Buscar contacto' },
+        { nombre: 'empresa', etiqueta: 'Empresa', placeholder: 'Empresa del contacto' },
+        { nombre: 'estado', etiqueta: 'Estado', opciones: [
+          { valor: '', etiqueta: 'Todos los estados' }, { valor: 'Activo', etiqueta: 'Activo' }, { valor: 'Inactivo', etiqueta: 'Inactivo' }
+        ] }
+      ]} />
+      {error && <div role="alert" className="p-3 rounded-md text-sm bg-red-100 text-red-800">
+        <p>{error}</p><button type="button" className="btn mt-2" onClick={recargar}>Reintentar</button>
+      </div>}
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
         <div className={`bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden ${ficha ? 'lg:col-span-2' : 'lg:col-span-3'}`}>
           <div className="overflow-x-auto">
@@ -260,8 +272,10 @@ export default function Contactos() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {contactos.length === 0 ? (
-                  <tr><td colSpan="5" className="text-center py-6 text-gray-400">No hay contactos registrados.</td></tr>
+                {cargando ? (
+                  <tr><td colSpan="5" className="text-center py-6 text-gray-500" role="status">Cargando contactos...</td></tr>
+                ) : error ? null : contactos.length === 0 ? (
+                  <tr><td colSpan="5" className="text-center py-6 text-gray-500">{Object.keys(filtros).length ? 'No se encontraron resultados con los filtros seleccionados.' : 'No hay contactos registrados.'}</td></tr>
                 ) : (
                   contactos.map((c) => (
                     <tr key={c.id} className={`hover:bg-gray-50 transition ${ficha?.id === c.id ? 'bg-blue-50' : ''}`}>

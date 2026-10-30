@@ -2,7 +2,7 @@
 
 Primera mini tarea de la historia «Buscar y filtrar contactos, oportunidades y tareas».
 La definición siguiente corresponde a la primera mini tarea. La implementación
-del backend de la segunda mini tarea se describe al final. La interfaz aún no cambia.
+del backend y la interfaz se describen al final, en sus respectivas mini tareas.
 
 ## Reglas comunes
 
@@ -136,3 +136,31 @@ migración y los filtros no cambian los permisos de escritura ni agregan control
 Las pruebas en `backend/tests/filtros_listado.test.js` recorren los endpoints HTTP con
 Supabase simulado y comprueban combinaciones, texto literal, rangos, responsables,
 vencimientos, validación, resultados vacíos y aislamiento por empresa y grupo.
+
+## Barras de búsqueda y filtros (tercera mini tarea)
+
+Las pantallas Contactos, Oportunidades y Mis tareas incluyen una barra «Buscar y
+filtrar», con los campos definidos arriba y botones **Buscar** y **Limpiar**.
+Buscar o pulsar Enter envía los filtros al endpoint de listado. No se filtran los
+datos únicamente en el navegador ni se requieren nuevas dependencias.
+
+Limpiar vacía los controles y recarga el listado inicial. En tareas restaura
+«Mis tareas»; también se permite seleccionar otro responsable o todos. Las opciones
+de responsables se obtienen de los endpoints existentes de grupos y asignables,
+que aplican los permisos de la cuenta. Un fallo al cargar esas opciones se muestra
+sin impedir las búsquedas por otros campos.
+
+La barra permanece disponible durante la consulta y ante errores de listado.
+Se distinguen carga, error con Reintentar y búsqueda sin resultados. Tras crear,
+eliminar o cambiar el estado de un registro se recarga la lista con los filtros
+activos; los catálogos de los formularios de alta conservan todos sus registros
+autorizados. Una respuesta de búsqueda anterior no reemplaza una más reciente.
+
+Se reutilizan tarjetas, selectores, campos y colores actuales; la barra pasa a una
+columna en móvil. No se agregan controles a Pipeline ni cambian los endpoints.
+
+Verificación de esta mini tarea: compilación del frontend y revisión manual en
+navegador con datos ficticios de las tres pantallas. Se comprobaron búsqueda
+combinada, Enter, Limpiar, lista vacía, error de rango y responsables de tareas.
+También se comprobó que completar una tarea la retire del filtro Pendiente y que
+los filtros se adapten a móvil. Esta revisión no modifica Supabase ni envía correos.

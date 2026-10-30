@@ -1,7 +1,7 @@
 import { api } from './api';
 
-export async function listarOportunidades() {
-  const { data } = await api.get('/oportunidades');
+export async function listarOportunidades(filtros = {}) {
+  const { data } = await api.get('/oportunidades', { params: filtros });
   return data;
 }
 
