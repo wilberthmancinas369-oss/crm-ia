@@ -122,7 +122,7 @@ export const reasignarOportunidad = async (req, res) => {
 
 export const getOportunidades = async (req, res) => {
   try {
-    const oportunidades = await oportunidadesService.getAll(ambitoDe(req));
+    const oportunidades = await oportunidadesService.getAll(ambitoDe(req), req.filtros);
     res.json(oportunidades);
   } catch (error) {
     res.status(500).json({ error: error.message });

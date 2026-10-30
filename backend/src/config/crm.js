@@ -5,5 +5,7 @@
 export const ETAPAS = ['Primer contacto', 'Propuesta', 'Negociación', 'Ganada', 'Perdida'];
 export const ETAPA_INICIAL = ETAPAS[0];
 
+export const ESTADOS_CONTACTO = ['Activo', 'Inactivo'];
+
 // Redes sociales que se guardan en contactos.redes_sociales (JSONB), como URL
 export const REDES_SOCIALES = ['linkedin', 'facebook', 'instagram', 'x', 'sitio_web'];

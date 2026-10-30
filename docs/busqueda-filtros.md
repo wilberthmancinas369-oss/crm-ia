@@ -1,8 +1,8 @@
 # Definición de búsqueda y filtros
 
 Primera mini tarea de la historia «Buscar y filtrar contactos, oportunidades y tareas».
-Este documento define el comportamiento para las siguientes mini tareas. No agrega
-columnas, consultas, endpoints ni controles visuales.
+La definición siguiente corresponde a la primera mini tarea. La implementación
+del backend de la segunda mini tarea se describe al final. La interfaz aún no cambia.
 
 ## Reglas comunes
 
@@ -37,10 +37,9 @@ el estado del contacto como `Activo` (disponible para seguimiento) o `Inactivo`
 (se conserva, pero ya no se le da seguimiento). No se deduce de sus oportunidades
 ni cambia sus permisos o impide consultarlo.
 
-El modelo actual no tiene este campo. Al implementarlo, los contactos nuevos y
-existentes partirán de `Activo`, conservando el comportamiento actual; solo una
-edición explícita los marcará como `Inactivo`. Esta entrega únicamente define
-esa regla: no agrega la columna ni modifica datos.
+El campo se incorpora mediante `hu12_estado_contactos.sql`: los contactos nuevos
+y existentes parten de `Activo`, conservando el comportamiento actual; solo una
+edición explícita los marca como `Inactivo`. La migración no se aplica automáticamente.
 
 ## Oportunidades
 
@@ -85,8 +84,8 @@ seleccionar otro responsable o «Todos los responsables», siempre dentro de la
 empresa y los grupos autorizados. «Limpiar» volverá al usuario actual y quitará
 los filtros de texto, estado y vencimiento. `todos` es el único valor especial
 admitido además de un UUID; no elimina las restricciones por empresa y grupo.
-La segunda mini tarea deberá adaptar la consulta, que actualmente fija el
-responsable al usuario autenticado. No se cambian los permisos de creación,
+La segunda mini tarea adapta la consulta para permitir esta selección explícita.
+No se cambian los permisos de creación,
 asignación, edición o finalización.
 
 ## Aislamiento y presentación
@@ -103,3 +102,37 @@ asignación, edición o finalización.
 - En la tercera mini tarea se reutilizarán los campos, selectores, botones y
   variables de color existentes (`frontend/src/styles/variables.css`), sin nuevas
   librerías ni cambios en la estética general. Esta mini tarea no altera la interfaz.
+
+## Endpoints de listado implementados (segunda mini tarea)
+
+Todos requieren sesión y el permiso existente `gestionarCRM`. Mantienen la respuesta
+como arreglo de registros y el orden previo. Solo se modifican los listados:
+
+| Endpoint | Parámetros opcionales |
+|---|---|
+| `GET /api/contactos` | `nombre`, `empresa`, `estado` |
+| `GET /api/oportunidades` | `q`, `etapa`, `responsable_id`, `monto_min`, `monto_max` |
+| `GET /api/tareas` | `q`, `estado`, `vencimiento`, `responsable_id` |
+
+Ejemplos:
+
+```text
+GET /api/contactos?nombre=Ana&empresa=ACME&estado=Activo
+GET /api/oportunidades?etapa=Propuesta&monto_min=0&monto_max=5000
+GET /api/tareas?responsable_id=todos&estado=Pendiente&vencimiento=proximas_24h
+```
+
+`responsable_id` acepta un UUID; solo en tareas también acepta `todos`.
+Los montos admiten hasta `9999999999.99`, conforme al `NUMERIC(12,2)` existente.
+Los parámetros conocidos repetidos o estructurados como objetos/arreglos se rechazan
+con 400, igual que los valores inválidos. Los desconocidos se ignoran; en particular,
+`company_id`, `group_id` y `grupo_id` nunca modifican el alcance de la sesión.
+
+Antes de usar el filtro de estado de contactos, ejecutar en el SQL Editor de Supabase
+`backend/db/migrations/hu12_estado_contactos.sql`. Los endpoints de alta y edición de
+contactos validan también `estado` si se envía, utilizando el mismo catálogo. La
+migración y los filtros no cambian los permisos de escritura ni agregan controles visuales.
+
+Las pruebas en `backend/tests/filtros_listado.test.js` recorren los endpoints HTTP con
+Supabase simulado y comprueban combinaciones, texto literal, rangos, responsables,
+vencimientos, validación, resultados vacíos y aislamiento por empresa y grupo.

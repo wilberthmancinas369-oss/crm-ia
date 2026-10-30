@@ -1,5 +1,6 @@
 import supabase from '../config/supabase.js';
 import { filtrarPorGrupos } from './alcance.service.js';
+import { patronTexto, valorOr } from './filtrosListado.js';
 
 // Evita que el body cambie la empresa o el grupo dueño del registro
 const soloDatos = ({ company_id, group_id, grupo_id, id, ...datos }) => datos;
@@ -8,11 +9,21 @@ const soloDatos = ({ company_id, group_id, grupo_id, id, ...datos }) => datos;
 // Todas las consultas filtran por los dos: fuera de su alcance, un contacto "no existe" (HU-11).
 export const contactosService = {
   // Obtener todos los contactos
-  async getAll({ companyId, alcance }) {
-    const { data, error } = await filtrarPorGrupos(
+  async getAll({ companyId, alcance }, filtros = {}) {
+    let consulta = filtrarPorGrupos(
       supabase.from('contactos').select('*').eq('company_id', companyId),
       alcance
-    ).order('created_at', { ascending: false });
+    );
+    // Cada palabra puede aparecer en el nombre o en el apellido; todas deben coincidir.
+    if (filtros.nombre) {
+      for (const palabra of filtros.nombre.split(/\s+/)) {
+        const valor = valorOr(patronTexto(palabra));
+        consulta = consulta.or(`nombre.ilike.${valor},apellido.ilike.${valor}`);
+      }
+    }
+    if (filtros.empresa) consulta = consulta.ilike('empresa_cliente', patronTexto(filtros.empresa));
+    if (filtros.estado) consulta = consulta.eq('estado', filtros.estado);
+    const { data, error } = await consulta.order('created_at', { ascending: false });
 
     if (error) throw error;
     return data;

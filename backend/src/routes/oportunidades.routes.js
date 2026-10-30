@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { body, param } from 'express-validator';
 import { validarCampos } from '../middlewares/validarCampos.js';
+import { validarFiltrosListado } from '../middlewares/validarFiltrosListado.js';
 import { autenticar } from '../middlewares/autenticar.js';
 import { autorizar } from '../middlewares/autorizarRol.js';
 import {
@@ -26,7 +27,7 @@ router.use(autenticar, autorizar('gestionarCRM'));
 router.post('/:id/sugerencia-ia', [param('id').isUUID().withMessage('Oportunidad no válida'), validarCampos], sugerirOportunidad);
 
 // Rutas de lectura
-router.get('/', getOportunidades);
+router.get('/', validarFiltrosListado('oportunidades'), getOportunidades);
 router.get('/:id', getOportunidadById);
 router.get('/:id/reasignaciones', [param('id').isUUID().withMessage('El ID de la oportunidad debe ser un UUID válido'), validarCampos], getHistorialReasignaciones);
 

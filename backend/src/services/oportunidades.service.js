@@ -1,5 +1,6 @@
 import supabase from '../config/supabase.js';
 import { filtrarPorGrupos } from './alcance.service.js';
+import { patronTexto } from './filtrosListado.js';
 
 // Evita que el body cambie la empresa o el grupo dueño del registro
 const soloDatos = ({ company_id, group_id, grupo_id, id, ...datos }) => datos;
@@ -14,11 +15,17 @@ const CAMPOS = `
 // `ambito` = { companyId, alcance } (ver contactos.service.js)
 export const oportunidadesService = {
   // Obtener todas las oportunidades visibles
-  async getAll({ companyId, alcance }) {
-    const { data, error } = await filtrarPorGrupos(
+  async getAll({ companyId, alcance }, filtros = {}) {
+    let consulta = filtrarPorGrupos(
       supabase.from('oportunidades').select(CAMPOS).eq('company_id', companyId),
       alcance
-    ).order('created_at', { ascending: false });
+    );
+    if (filtros.q) consulta = consulta.ilike('nombre_oportunidad', patronTexto(filtros.q));
+    if (filtros.etapa) consulta = consulta.eq('etapa', filtros.etapa);
+    if (filtros.responsable_id) consulta = consulta.eq('responsable_id', filtros.responsable_id);
+    if (filtros.monto_min !== undefined) consulta = consulta.gte('valor_estimado', filtros.monto_min);
+    if (filtros.monto_max !== undefined) consulta = consulta.lte('valor_estimado', filtros.monto_max);
+    const { data, error } = await consulta.order('created_at', { ascending: false });
 
     if (error) throw error;
     return data;
