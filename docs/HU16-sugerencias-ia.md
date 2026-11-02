@@ -60,3 +60,11 @@ Verificación del 26 de octubre de 2026: 21 pruebas de HU16 aprobadas, incluyend
 Verificación del 24 de octubre de 2026: 17 pruebas nuevas de HU16 aprobadas y suite completa de 169 pruebas aprobada (la base actual eliminó dos pruebas de la acción retirada de remover del grupo). Compilación de Vite aprobada; permanece el aviso de bundle mayor de 500 kB. No se realizaron llamadas reales a Gemini ni escrituras a Supabase.
 
 Referencia oficial: https://ai.google.dev/gemini-api/docs/generate-content/structured-output
+
+## Ampliación: priorización del listado
+
+El botón «Priorizar oportunidades con IA» complementa la sugerencia individual sin reemplazarla. POST `/api/oportunidades/prioridades-ia` usa la misma autenticación y alcance por empresa/grupo. El backend selecciona hasta 20 oportunidades abiertas más recientes (orden created_at e id), declara si hay más y devuelve hasta tres prioridades con motivo y enlace al detalle. No compara todas las oportunidades cuando supera ese límite y no depende de filtros visuales del listado.
+
+El prompt independiente `PROMPT_PRIORIDADES` está en `services/ia/prioridades.js`. Envía referencias temporales O1, O2, etc., los resúmenes existentes y días hasta el cierre previsto; nombres e IDs se asocian localmente después de validar la respuesta. Rechaza referencias desconocidas/duplicadas y motivos vacíos o de más de 300 caracteres. No escribe datos. Tiene límite separado de tres solicitudes por usuario/empresa cada diez minutos; comparte el transporte Gemini con los mismos valores predeterminados de la sugerencia individual. El navegador espera hasta 60 segundos para permitir las consultas previas de contexto. Los resultados se descartan al cambiar el listado; siguen siendo una fotografía del momento de la consulta y requieren criterio humano.
+
+La compilación y las pruebas simuladas no sustituyen la evaluación de calidad de las prioridades con Gemini real.
