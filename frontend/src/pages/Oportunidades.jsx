@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import SugerenciaIA from '../components/SugerenciaIA.jsx';
+import PrioridadesIA from '../components/PrioridadesIA.jsx';
 import { useForm } from 'react-hook-form';
 import { useCRM } from '../context/CRMContext.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
@@ -437,6 +438,7 @@ export default function Oportunidades() {
       </div>
 
       <FormularioOportunidad contactos={contactos} onCreada={recargar} />
+      <PrioridadesIA onVer={setSeleccionada} oportunidades={oportunidades} />
 
       <FiltrosListado cargando={cargando} onAplicar={(valores) => { setSeleccionada(null); setFiltros(valores); }} campos={[
         { nombre: 'q', etiqueta: 'Buscar oportunidad', placeholder: 'Nombre de la oportunidad' },
