@@ -1,10 +1,14 @@
 import supabase from '../config/supabase.js';
 import { buscarContactoVisible, buscarOportunidadVisible, filtrarPorGrupos } from './alcance.service.js';
+import { patronTexto } from './filtrosListado.js';
 
 // Tareas de la empresa dentro del alcance, ordenadas por fecha límite. Cada consulta hereda el grupo
 // de su vínculo; !inner excluye tareas del otro tipo. Con responsableId, solo las de esa persona.
-async function listarTareas({ companyId, alcance }, { responsableId, conResponsable = false } = {}) {
+// filtros (HU-12): q (título), estado y vencimiento.
+async function listarTareas({ companyId, alcance }, { responsableId, conResponsable = false, filtros = {} } = {}) {
   const extra = conResponsable ? ', profiles!inner(id, full_name, email)' : '';
+  const ahora = new Date();
+  const hasta = new Date(ahora.getTime() + 24 * 60 * 60 * 1000);
   const consultas = [
     ['contactos', 'id, nombre, apellido, group_id'],
     ['oportunidades', 'id, nombre_oportunidad, group_id']
@@ -12,6 +16,15 @@ async function listarTareas({ companyId, alcance }, { responsableId, conResponsa
     let consulta = supabase.from('tareas').select(`*, ${tabla}!inner(${campos})${extra}`)
       .eq('company_id', companyId);
     if (responsableId) consulta = consulta.eq('responsable_id', responsableId);
+    if (filtros.q) consulta = consulta.ilike('titulo', patronTexto(filtros.q));
+    if (filtros.estado) consulta = consulta.eq('estado', filtros.estado);
+    if (filtros.vencimiento) {
+      consulta = consulta.neq('estado', 'Completada');
+      consulta = filtros.vencimiento === 'vencidas'
+        ? consulta.lte('fecha_limite', ahora.toISOString())
+        : consulta.gt('fecha_limite', ahora.toISOString());
+      if (filtros.vencimiento === 'proximas_24h') consulta = consulta.lte('fecha_limite', hasta.toISOString());
+    }
     return filtrarPorGrupos(consulta, alcance, `${tabla}.group_id`);
   });
   const resultados = await Promise.all(consultas);
@@ -21,7 +34,11 @@ async function listarTareas({ companyId, alcance }, { responsableId, conResponsa
 }
 
 export const tareasService = {
-  getMisTareas: (responsableId, ambito) => listarTareas(ambito, { responsableId }),
+  // HU-12: responsable_id filtra por otra persona del alcance; 'todos' quita el filtro.
+  getMisTareas(responsableId, ambito, filtros = {}) {
+    const responsable = filtros.responsable_id || responsableId;
+    return listarTareas(ambito, { responsableId: responsable === 'todos' ? null : responsable, filtros });
+  },
 
   // HU-13: tareas de todos los miembros de los grupos indicados (alcance de asignarResponsable),
   // con el nombre del responsable y el grupo de la tarea.

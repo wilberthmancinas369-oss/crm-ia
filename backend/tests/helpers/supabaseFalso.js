@@ -1,5 +1,18 @@
 import crypto from 'node:crypto';
 
+// Subconjunto de LIKE usado por los filtros: % y _, con escape mediante barra inversa.
+const coincideLike = (valor, patron) => {
+  if (valor == null) return false;
+  let expresion = '^';
+  const literal = (caracter) => caracter.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  for (let i = 0; i < patron.length; i++) {
+    const caracter = patron[i];
+    if (caracter === '\\' && i + 1 < patron.length) expresion += literal(patron[++i]);
+    else expresion += caracter === '%' ? '.*' : caracter === '_' ? '.' : literal(caracter);
+  }
+  return new RegExp(`${expresion}$`, 'iu').test(String(valor));
+};
+
 // Base de datos en memoria con la forma del cliente de Supabase que usa el backend:
 // from(tabla).select/insert/update/delete + eq/in/lt/lte + order/limit + single/maybeSingle/await.
 // Aplica de verdad los filtros sobre las filas, así una consulta sin filtro de grupo devuelve
@@ -34,12 +47,22 @@ class Consulta {
     return this;
   }
   eq(columna, valor) { return this.filtrar(columna, (v) => v === valor); }
+  ilike(columna, patron) { return this.filtrar(columna, (v) => coincideLike(v, patron)); }
+  or(expresion) {
+    // Las búsquedas de nombre generan únicamente alternativas ilike con valores JSON entre comillas.
+    const alternativas = [...expresion.matchAll(/(\w+)\.ilike\.("(?:\\.|[^"\\])*")/g)]
+      .map(([, columna, valor]) => ({ columna, patron: JSON.parse(valor) }));
+    if (!alternativas.length) throw new Error('Expresión OR no soportada por la prueba');
+    this.filtros.push((fila) => alternativas.some(({ columna, patron }) => coincideLike(fila[columna], patron)));
+    return this;
+  }
   neq(columna, valor) { return this.filtrar(columna, (v) => v !== valor); }
   is(columna, valor) { return this.filtrar(columna, (v) => valor === null ? v == null : v === valor); }
-  gt(columna, valor) { return this.filtrar(columna, (v) => v > valor); }
+  gt(columna, valor) { return this.filtrar(columna, (v) => v != null && v > valor); }
+  gte(columna, valor) { return this.filtrar(columna, (v) => v != null && v >= valor); }
   in(columna, valores) { return this.filtrar(columna, (v) => valores.includes(v)); }
   lt(columna, valor) { return this.filtrar(columna, (v) => v < valor); }
-  lte(columna, valor) { return this.filtrar(columna, (v) => v <= valor); }
+  lte(columna, valor) { return this.filtrar(columna, (v) => v != null && v <= valor); }
 
   async ejecutar() {
     let filas = (this.tablas[this.tabla] ??= []);

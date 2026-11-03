@@ -3,6 +3,7 @@ import { body, param } from 'express-validator';
 import { autenticar } from '../middlewares/autenticar.js';
 import { autorizar } from '../middlewares/autorizarRol.js';
 import { validarCampos } from '../middlewares/validarCampos.js';
+import { validarFiltrosListado } from '../middlewares/validarFiltrosListado.js';
 import {
   getMisTareas, getTareasEquipo, createTarea, updateTarea, completarTarea, asignarTarea, deleteTarea
 } from '../controllers/tareas.controller.js';
@@ -32,7 +33,7 @@ export const validacionesTarea = (crear = false) => {
 
 const validarId = () => param('id').isUUID().withMessage('El id de la tarea debe ser un UUID válido');
 
-router.get('/', getMisTareas);
+router.get('/', validarFiltrosListado('tareas'), getMisTareas);
 // HU-13: tareas del equipo (Jefe de Área de su grupo / Administrador)
 router.get('/equipo', getTareasEquipo);
 router.post('/', validacionesTarea(true), validarCampos, createTarea);

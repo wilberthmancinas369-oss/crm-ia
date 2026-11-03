@@ -5,7 +5,7 @@ import { avisarSiVencePronto } from '../services/recordatorios.service.js';
 
 export const getMisTareas = async (req, res) => {
   try {
-    res.json(await tareasService.getMisTareas(req.user.id, ambitoDe(req)));
+    res.json(await tareasService.getMisTareas(req.user.id, ambitoDe(req), req.filtros));
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
