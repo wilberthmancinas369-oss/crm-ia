@@ -2,13 +2,15 @@ import supabase from '../config/supabase.js';
 import { emailService } from './email.service.js';
 
 export const recordatoriosService = {
-  async enviarPendientes(ahora = new Date()) {
+  // Con tareaId solo revisa esa tarea (al reasignarla o reprogramarla, HU-13).
+  async enviarPendientes(ahora = new Date(), { tareaId } = {}) {
     const hasta = new Date(ahora.getTime() + 24 * 60 * 60 * 1000);
-    const { data: tareas, error } = await supabase.from('tareas')
+    let consulta = supabase.from('tareas')
       .select('id, company_id, titulo, fecha_limite, responsable_id, profiles!inner(email)')
       .is('recordatorio_enviado_at', null).neq('estado', 'Completada')
-      .gt('fecha_limite', ahora.toISOString()).lte('fecha_limite', hasta.toISOString())
-      .order('fecha_limite');
+      .gt('fecha_limite', ahora.toISOString()).lte('fecha_limite', hasta.toISOString());
+    if (tareaId) consulta = consulta.eq('id', tareaId);
+    const { data: tareas, error } = await consulta.order('fecha_limite');
     if (error) throw error;
 
     for (const tarea of tareas) {
@@ -28,6 +30,23 @@ export const recordatoriosService = {
     }
   }
 };
+
+const recordatoriosActivos = () => process.env.RECORDATORIOS_ACTIVOS === 'true'
+  && Boolean(process.env.BREVO_API_KEY && process.env.BREVO_SENDER_EMAIL);
+
+/**
+ * HU-13: al reasignar (o reprogramar) una tarea que ya vence en menos de 24 h, el recordatorio
+ * se manda en ese momento al nuevo responsable, sin esperar la siguiente revisión de 15 min.
+ * Si falla, solo se registra: la revisión periódica lo vuelve a intentar.
+ */
+export async function avisarSiVencePronto(tareaId, ahora = new Date()) {
+  if (!recordatoriosActivos()) return;
+  try {
+    await recordatoriosService.enviarPendientes(ahora, { tareaId });
+  } catch (error) {
+    console.error(`Error al avisar la tarea ${tareaId}:`, error.message);
+  }
+}
 
 // Una sola instancia del backend ejecuta esta revisión. Sin colas ni servicios nuevos.
 export function iniciarRecordatorios() {

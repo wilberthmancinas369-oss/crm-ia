@@ -3,7 +3,9 @@ import AuthLayout from '../components/layout/AuthLayout'
 import DashboardLayout from '../components/layout/DashboardLayout'
 import ProtectedRoute from './ProtectedRoute'
 import RequierePermiso from './RequierePermiso'
-
+import ForgotPassword from '../pages/ForgotPassword'
+import VerifyRecoveryCode from '../pages/VerifyRecoveryCode'
+import ResetPassword from '../pages/ResetPassword'
 import Landing from '../pages/Landing'
 import Login from '../pages/Login'
 import RegistroEmpresa from '../pages/RegistroEmpresa'
@@ -16,6 +18,7 @@ import Reportes from '../pages/Reportes'
 import Bienvenida from '../pages/Bienvenida'
 import Pipeline from '../pages/Pipeline'
 import MisTareas from '../pages/MisTareas'
+import TareasEquipo from '../pages/TareasEquipo'
 import ReporteGeneral from '../pages/ReporteGeneral'
 import AdminUsuarios from '../pages/AdministracionUsuarios'
 
@@ -27,6 +30,8 @@ export default function AppRoutes() {
         <Route path="/" element={<Landing />} />
         <Route path="/login" element={<Login />} />
         <Route path="/registro" element={<RegistroEmpresa />} />
+        <Route path="/olvidaste-password" element={<ForgotPassword />} /> 
+        <Route path="/nueva-password" element={<ResetPassword />} /> 
         <Route path="/invitacion/:token" element={<AceptarInvitacion />} />
       </Route>
 
@@ -40,6 +45,9 @@ export default function AppRoutes() {
             <Route path="oportunidades" element={<Oportunidades />} />
             <Route path="pipeline" element={<Pipeline />} />
             <Route path="tareas" element={<MisTareas />} />
+          </Route>
+          <Route element={<RequierePermiso permiso="asignarResponsable" />}>
+            <Route path="tareas/equipo" element={<TareasEquipo />} />
           </Route>
           <Route element={<RequierePermiso permiso="verMiembros" />}>
             <Route path="grupos" element={<Grupos />} />
@@ -58,7 +66,7 @@ export default function AppRoutes() {
           </Route>
         </Route>
       </Route>
-
+      
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   )

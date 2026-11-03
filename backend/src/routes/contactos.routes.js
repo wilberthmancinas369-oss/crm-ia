@@ -1,7 +1,8 @@
 import { Router } from 'express';
 import { body } from 'express-validator';
 import validator from 'validator';
-import { REDES_SOCIALES } from '../config/crm.js';
+import { REDES_SOCIALES, ESTADOS_CONTACTO } from '../config/crm.js';
+import { validarFiltrosListado } from '../middlewares/validarFiltrosListado.js';
 import { validarCampos } from '../middlewares/validarCampos.js';
 import { autenticar } from '../middlewares/autenticar.js';
 import { autorizar } from '../middlewares/autorizarRol.js';
@@ -20,7 +21,7 @@ const router = Router();
 router.use(autenticar, autorizar('gestionarCRM'));
 
 // Rutas de lectura
-router.get('/', getContactos);
+router.get('/', validarFiltrosListado('contactos'), getContactos);
 router.get('/:id', getContactoById);
 
 // redes_sociales: { linkedin, facebook, instagram, x, sitio_web } con URLs; los vacíos se descartan
@@ -41,6 +42,7 @@ const limpiarRedes = (redes) =>
 
 // Reglas de validación para reutilizar o aplicar en las peticiones
 const validacionesBase = [
+  body('estado').optional().isIn(ESTADOS_CONTACTO).withMessage('El estado debe ser Activo o Inactivo'),
   body('grupo_id').optional({ values: 'falsy' }).isUUID().withMessage('El grupo_id debe ser un UUID válido'),
   body('nombre').optional().notEmpty().withMessage('El nombre no puede estar vacío'),
   body('apellido').optional().isString().withMessage('El apellido debe ser texto'),

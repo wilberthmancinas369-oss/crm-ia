@@ -2,6 +2,36 @@
 import { supabase } from './supabase'
 import { api } from './api'
 
+
+// Solicitar código de recuperación
+export async function solicitarRecuperacion(email) {
+  // Volvemos al flujo de enlace estándar
+  const { data, error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+    // El origen sale del navegador para que funcione igual en local y en el sitio publicado
+    redirectTo: `${window.location.origin}/nueva-password`,
+  });
+  if (error) throw error;
+  return data;
+}
+
+// Verificar el código OTP
+export async function verificarCodigoRecuperacion(email, token) {
+  const { data, error } = await supabase.auth.verifyOtp({
+    email,
+    token,
+    type: 'recovery',
+  });
+  if (error) throw error;
+  return data;
+}
+
+// Actualizar contraseña
+export async function actualizarPassword(password) {
+  const { data, error } = await supabase.auth.updateUser({ password });
+  if (error) throw error;
+  return data;
+}
+
 export async function login(email, password) {
   const { data, error } = await supabase.auth.signInWithPassword({ email: email.trim(), password })
   if (error) throw error

@@ -213,7 +213,7 @@ test('Mis tareas reúne ambos vínculos, ordena por fecha y excluye otros respon
     { ...tablas.tareas[0], id: 'otra-empresa', company_id: 'empresa-2' },
     { ...tablas.tareas[0], id: 'otro-grupo', contacto_id: ids.otro }
   );
-  const respuesta = await pedir('GET', `?responsable_id=${ids.otro}&company_id=empresa-2`);
+  const respuesta = await pedir('GET', '?company_id=empresa-2&group_id=grupo-2');
   assert.equal(respuesta.status, 200);
   assert.deepEqual(respuesta.body.map((tarea) => tarea.id), ['oportunidad', ids.tarea]);
   assert.equal(respuesta.body[1].contactos.id, ids.contacto);

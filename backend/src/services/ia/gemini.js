@@ -18,7 +18,7 @@ export function validarRespuesta(valor) {
 }
 
 // Adaptador: generar(contexto) -> { sugerencia }. Sin acceso directo a Supabase.
-export function crearGemini({ apiKey, modelo, timeoutMs = 35000, pausaMs = 1000, fetchImpl = fetch }) {
+export function crearGemini({ apiKey, modelo, timeoutMs = 35000, pausaMs = 1000, fetchImpl = fetch, instruccion = INSTRUCCION, esquema = { type: 'object', properties: { sugerencia: { type: 'string', maxLength: 500 } }, required: ['sugerencia'], additionalProperties: false }, validar = validarRespuesta }) {
   return {
     async generar(contexto) {
       if (!apiKey || !/^gemini-[a-zA-Z0-9._-]+$/.test(modelo ?? '')) {
@@ -31,11 +31,11 @@ export function crearGemini({ apiKey, modelo, timeoutMs = 35000, pausaMs = 1000,
           method: 'POST', signal,
           headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
           body: JSON.stringify({
-            systemInstruction: { parts: [{ text: INSTRUCCION }] },
+            systemInstruction: { parts: [{ text: instruccion }] },
             contents: [{ role: 'user', parts: [{ text: JSON.stringify(contexto) }] }],
             generationConfig: {
               responseMimeType: 'application/json',
-              responseJsonSchema: { type: 'object', properties: { sugerencia: { type: 'string', maxLength: 500 } }, required: ['sugerencia'], additionalProperties: false }
+              responseJsonSchema: esquema
             }
           })
         };
@@ -62,7 +62,7 @@ export function crearGemini({ apiKey, modelo, timeoutMs = 35000, pausaMs = 1000,
         const texto = candidato.content?.parts?.filter(p => !p.thought).map(p => p.text ?? '').join('');
         let resultado;
         try { resultado = JSON.parse(texto); } catch { throw new ErrorIA(502, 'IA_RESPUESTA_INVALIDA', 'La IA no devolvió una sugerencia válida.'); }
-        return validarRespuesta(resultado);
+        return validar(resultado);
       } catch (error) {
         if (error instanceof ErrorIA) throw error;
         if (['TimeoutError', 'AbortError'].includes(error.name)) throw new ErrorIA(504, 'IA_TIEMPO_AGOTADO', 'La IA tardó demasiado. Intenta nuevamente.');

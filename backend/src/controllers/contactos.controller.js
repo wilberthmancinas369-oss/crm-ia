@@ -5,7 +5,7 @@ import { ambitoDe, resolverGrupoDestino } from '../services/alcance.service.js';
 
 export const getContactos = async (req, res) => {
   try {
-    const contactos = await contactosService.getAll(ambitoDe(req));
+    const contactos = await contactosService.getAll(ambitoDe(req), req.filtros);
     res.json(contactos);
   } catch (error) {
     res.status(500).json({ error: error.message });

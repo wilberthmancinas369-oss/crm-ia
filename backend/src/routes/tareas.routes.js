@@ -3,7 +3,10 @@ import { body, param } from 'express-validator';
 import { autenticar } from '../middlewares/autenticar.js';
 import { autorizar } from '../middlewares/autorizarRol.js';
 import { validarCampos } from '../middlewares/validarCampos.js';
-import { getMisTareas, createTarea, updateTarea, completarTarea } from '../controllers/tareas.controller.js';
+import { validarFiltrosListado } from '../middlewares/validarFiltrosListado.js';
+import {
+  getMisTareas, getTareasEquipo, createTarea, updateTarea, completarTarea, asignarTarea, deleteTarea
+} from '../controllers/tareas.controller.js';
 
 const router = Router();
 router.use(autenticar, autorizar('gestionarCRM'));
@@ -30,9 +33,15 @@ export const validacionesTarea = (crear = false) => {
 
 const validarId = () => param('id').isUUID().withMessage('El id de la tarea debe ser un UUID válido');
 
-router.get('/', getMisTareas);
+router.get('/', validarFiltrosListado('tareas'), getMisTareas);
+// HU-13: tareas del equipo (Jefe de Área de su grupo / Administrador)
+router.get('/equipo', getTareasEquipo);
 router.post('/', validacionesTarea(true), validarCampos, createTarea);
 router.put('/:id', validarId(), validacionesTarea(), validarCampos, updateTarea);
 router.patch('/:id/completar', validarId(), validarCampos, completarTarea);
+router.patch('/:id/asignar', validarId(),
+  body('responsable_id').isUUID().withMessage('El responsable_id debe ser un UUID válido'),
+  validarCampos, asignarTarea);
+router.delete('/:id', validarId(), validarCampos, deleteTarea);
 
 export default router;
