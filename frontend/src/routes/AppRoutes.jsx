@@ -16,6 +16,7 @@ import Reportes from '../pages/Reportes'
 import Bienvenida from '../pages/Bienvenida'
 import Pipeline from '../pages/Pipeline'
 import MisTareas from '../pages/MisTareas'
+import TareasEquipo from '../pages/TareasEquipo'
 import ReporteGeneral from '../pages/ReporteGeneral'
 import AdminUsuarios from '../pages/AdministracionUsuarios'
 
@@ -40,6 +41,9 @@ export default function AppRoutes() {
             <Route path="oportunidades" element={<Oportunidades />} />
             <Route path="pipeline" element={<Pipeline />} />
             <Route path="tareas" element={<MisTareas />} />
+          </Route>
+          <Route element={<RequierePermiso permiso="asignarResponsable" />}>
+            <Route path="tareas/equipo" element={<TareasEquipo />} />
           </Route>
           <Route element={<RequierePermiso permiso="verMiembros" />}>
             <Route path="grupos" element={<Grupos />} />

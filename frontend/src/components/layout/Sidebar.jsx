@@ -8,6 +8,7 @@ export const NAV_ITEMS = [
   { to: '/app/oportunidades', label: 'Oportunidades', permiso: 'gestionarCRM' },
   { to: '/app/pipeline', label: 'Pipeline', permiso: 'gestionarCRM' },
   { to: '/app/tareas', label: 'Mis tareas', permiso: 'gestionarCRM' },
+  { to: '/app/tareas/equipo', label: 'Tareas del equipo', permiso: 'asignarResponsable' },
   { to: '/app/grupos', label: 'Grupos', permiso: 'verMiembros' },
   { to: '/app/usuarios', label: 'Usuarios', permiso: 'gestionarMiembros' },
   { to: '/app/grupos/invitar', label: 'Invitar usuario', permiso: 'invitarUsuarios' },
