@@ -26,8 +26,8 @@ export default function AppRoutes() {
   return (
     <Routes>
       {/* Públicas */}
+      <Route path="/" element={<Landing />} />
       <Route element={<AuthLayout />}>
-        <Route path="/" element={<Landing />} />
         <Route path="/login" element={<Login />} />
         <Route path="/registro" element={<RegistroEmpresa />} />
         <Route path="/olvidaste-password" element={<ForgotPassword />} /> 
