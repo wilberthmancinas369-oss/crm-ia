@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { flushSync } from 'react-dom'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
@@ -85,6 +85,35 @@ const FUNCIONES = [
 const moneda = (n) => n.toLocaleString('es-MX', { style: 'currency', currency: 'MXN', maximumFractionDigits: 0 })
 const ORDEN_IA = ['flotilla', 'uniformes', 'computo', 'clinica', 'nomina']
 const sinMovimiento = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches
+
+// Agrega .lp-visible a los elementos [data-revelar] cuando entran en pantalla
+function useRevelar() {
+  useEffect(() => {
+    const elementos = document.querySelectorAll('.lp [data-revelar]')
+    if (!('IntersectionObserver' in window) || sinMovimiento()) {
+      elementos.forEach((el) => el.classList.add('lp-visible'))
+      return
+    }
+    const observador = new IntersectionObserver((entradas) => {
+      entradas.forEach((e) => {
+        if (e.isIntersecting) { e.target.classList.add('lp-visible'); observador.unobserve(e.target) }
+      })
+    }, { threshold: 0.15, rootMargin: '0px 0px -40px 0px' })
+    elementos.forEach((el) => observador.observe(el))
+    return () => observador.disconnect()
+  }, [])
+}
+
+function useDesplazado() {
+  const [desplazado, setDesplazado] = useState(false)
+  useEffect(() => {
+    const revisar = () => setDesplazado(window.scrollY > 8)
+    revisar()
+    window.addEventListener('scroll', revisar, { passive: true })
+    return () => window.removeEventListener('scroll', revisar)
+  }, [])
+  return desplazado
+}
 
 function Marca() {
   return (
@@ -180,7 +209,7 @@ function Demo() {
 
       <div className="lp-sugerencia" aria-live="polite">
         <span className="lp-sugerencia-de">Siguiente paso sugerido para {op.empresa}</span>
-        <p>{op.paso}</p>
+        <p key={op.id} className="lp-sugerencia-texto">{op.paso}</p>
       </div>
       <p className="lp-demo-nota">Datos de ejemplo. En tu cuenta, la IA compara hasta 20 oportunidades abiertas de tu equipo.</p>
     </div>
@@ -234,11 +263,14 @@ function Roles() {
 export default function Landing() {
   const { session } = useAuth()
   const conSesion = Boolean(session)
+  const desplazado = useDesplazado()
+  useRevelar()
 
   return (
     <div className="lp">
       <a href="#contenido" className="lp-saltar">Saltar al contenido</a>
-      <header className="lp-cabecera">
+      <header className={`lp-cabecera-fija ${desplazado ? 'lp-con-sombra' : ''}`}>
+      <div className="lp-cabecera">
         <Link to="/" className="lp-cabecera-marca"><Marca /></Link>
         <nav aria-label="Principal" className="lp-nav">
           <a href="#roles" className="lp-nav-enlace">Roles</a>
@@ -252,12 +284,20 @@ export default function Landing() {
             </>
           )}
         </nav>
+      </div>
       </header>
 
       <main id="contenido">
         <section className="lp-hero" aria-labelledby="lp-titulo">
+          <div className="lp-fondo" aria-hidden="true"><span /><span /><span /></div>
           <div className="lp-hero-texto">
-            <h1 id="lp-titulo">Tu equipo sabe a quién llamar hoy.</h1>
+            <h1 id="lp-titulo" aria-label="Tu equipo sabe a quién llamar hoy.">
+              {'Tu equipo sabe a quién llamar hoy.'.split(' ').map((palabra, i) => (
+                <span key={i} aria-hidden="true">
+                  <span className="lp-palabra" style={{ '--i': i }}>{palabra}</span>{' '}
+                </span>
+              ))}
+            </h1>
             <p className="lp-hero-sub">
               Guarda tus clientes y oportunidades de venta en un solo lugar, reparte el trabajo entre tus grupos
               y deja que la IA te diga qué atender primero.
@@ -278,20 +318,20 @@ export default function Landing() {
         </section>
 
         <section id="roles" className="lp-seccion" aria-labelledby="roles-titulo">
-          <div className="lp-seccion-encabezado">
+          <div className="lp-seccion-encabezado" data-revelar>
             <h2 id="roles-titulo">Cada persona ve lo que le toca</h2>
             <p>Los permisos dependen del rol y del grupo. Un Jefe de Área no ve las ventas de otra sucursal, y un Agente solo modifica su propio trabajo.</p>
           </div>
-          <Roles />
+          <div data-revelar><Roles /></div>
         </section>
 
         <section id="como-empezar" className="lp-seccion lp-seccion-pasos" aria-labelledby="pasos-titulo">
-          <div className="lp-seccion-encabezado">
+          <div className="lp-seccion-encabezado" data-revelar>
             <h2 id="pasos-titulo">Empieza en tres pasos</h2>
           </div>
           <ol className="lp-pasos">
-            {PASOS.map((p) => (
-              <li key={p.titulo}>
+            {PASOS.map((p, i) => (
+              <li key={p.titulo} data-revelar style={{ '--i': i }}>
                 <h3>{p.titulo}</h3>
                 <p>{p.texto}</p>
               </li>
@@ -300,12 +340,12 @@ export default function Landing() {
         </section>
 
         <section className="lp-seccion" aria-labelledby="funciones-titulo">
-          <div className="lp-seccion-encabezado">
+          <div className="lp-seccion-encabezado" data-revelar>
             <h2 id="funciones-titulo">Lo que tu equipo usa a diario</h2>
           </div>
           <dl className="lp-funciones">
-            {FUNCIONES.map((f) => (
-              <div key={f.titulo}>
+            {FUNCIONES.map((f, i) => (
+              <div key={f.titulo} data-revelar style={{ '--i': i % 2 }}>
                 <dt>{f.titulo}</dt>
                 <dd>{f.texto}</dd>
               </div>
@@ -313,7 +353,7 @@ export default function Landing() {
           </dl>
         </section>
 
-        <section className="lp-cierre" aria-labelledby="cierre-titulo">
+        <section className="lp-cierre" aria-labelledby="cierre-titulo" data-revelar>
           <h2 id="cierre-titulo">Registra tu empresa y organiza a tu equipo hoy.</h2>
           <Link to={conSesion ? '/app' : '/registro'} className="lp-boton lp-boton-claro">
             {conSesion ? 'Ir a mi CRM' : 'Registrar mi empresa'}
