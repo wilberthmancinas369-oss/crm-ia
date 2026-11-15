@@ -4,6 +4,7 @@ import Sidebar from './Sidebar'
 import { useAuth } from '../../context/AuthContext'
 import { CRMProvider } from '../../context/CRMContext'
 import '../../styles/layout.css'
+import '../../styles/components.css'
 
 const iniciales = (texto) =>
   texto.trim().split(/\s+/).slice(0, 2).map((parte) => parte[0]).join('').toUpperCase()
