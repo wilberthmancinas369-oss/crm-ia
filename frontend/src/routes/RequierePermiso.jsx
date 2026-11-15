@@ -8,10 +8,10 @@ export default function RequierePermiso({ permiso }) {
 
   if (!puede(permiso)) {
     return (
-      <div className="p-6 max-w-md mx-auto text-center space-y-3">
-        <h1 className="text-xl font-bold text-gray-800">Sin permiso</h1>
-        <p className="text-sm text-gray-600">Tu rol no tiene acceso a esta sección.</p>
-        <Link to="/app" className="btn inline-block">Ir al inicio</Link>
+      <div className="card max-w-md mx-auto mt-10 text-center space-y-3">
+        <h1 className="text-2xl">Sin permiso</h1>
+        <p>Tu rol no tiene acceso a esta sección.</p>
+        <Link to="/app" className="btn">Ir al inicio</Link>
       </div>
     )
   }

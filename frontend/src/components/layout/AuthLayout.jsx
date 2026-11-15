@@ -6,7 +6,7 @@ export default function AuthLayout() {
   return (
     <div className="auth-layout">
       <header className="auth-header">
-        <Link to="/">CRM con IA</Link>
+        <Link to="/">CRM con <span className="marca-ia">IA</span></Link>
       </header>
       <main className="auth-main">
         <div className="auth-card">
