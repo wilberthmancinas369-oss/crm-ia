@@ -7,6 +7,7 @@
 body {
   margin: 0;
   font-family: var(--font-family);
+  line-height: 1.5;
   color: var(--color-text);
   background: var(--color-bg);
 }
@@ -15,24 +16,97 @@ a {
   color: var(--color-secondary);
 }
 
+h1,
+h2,
+h3 {
+  font-family: var(--font-display);
+  letter-spacing: -0.02em;
+}
+
 h1 {
   color: var(--color-primary);
+  font-weight: 800;
   margin-top: 0;
 }
 
+/* Foco visible para teclado (mismo estilo que la landing) */
+a:focus-visible,
+button:focus-visible,
+summary:focus-visible,
+[tabindex]:focus-visible {
+  outline: 3px solid var(--cempasuchil);
+  outline-offset: 3px;
+}
+
+/* ---------- Botones ---------- */
 .btn {
-  display: inline-block;
-  padding: var(--space-1) var(--space-2);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 2.5rem;
+  padding: 0.5rem 1.1rem;
+  border: 2px solid transparent;
   border-radius: var(--radius);
-  background: var(--color-primary);
+  background-color: var(--color-primary);
   color: var(--color-on-primary);
+  font: inherit;
+  font-size: 0.95rem;
+  font-weight: 700;
   text-decoration: none;
-  border: none;
   cursor: pointer;
+  box-shadow: 0 8px 18px -12px rgb(31 42 92 / 0.8);
+  transition: transform 0.2s var(--curva), box-shadow 0.2s, filter 0.2s;
+}
+
+.btn:hover {
+  filter: brightness(1.15);
+  transform: translateY(-1px);
+}
+
+.btn:active {
+  transform: none;
+}
+
+.btn:disabled,
+.btn[aria-disabled='true'] {
+  opacity: 0.55;
+  cursor: not-allowed;
+  filter: none;
+  transform: none;
 }
 
 .btn-secondary {
-  background: var(--color-secondary);
+  background-color: var(--color-secondary);
+}
+
+.btn-outline {
+  background-color: rgb(255 255 255 / 0.6);
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+  box-shadow: none;
+}
+
+.btn-outline:hover {
+  background-color: var(--color-surface);
+  filter: none;
+}
+
+.btn-peligro {
+  background-color: var(--color-danger);
+}
+
+/* Acciones de IA: el cempasúchil se reserva para esto */
+.btn-ia {
+  background-image: linear-gradient(135deg, var(--cempasuchil-claro) 0%, var(--cempasuchil) 55%, var(--cempasuchil-oscuro) 100%);
+  color: var(--tinta);
+  box-shadow: 0 8px 18px -8px rgb(233 162 59 / 0.85);
+}
+
+.btn-sm {
+  min-height: 2rem;
+  padding: 0.25rem 0.8rem;
+  font-size: 0.85rem;
 }
 
 .placeholder {
@@ -48,4 +122,15 @@ h1 {
   gap: var(--space-1);
   flex-wrap: wrap;
   margin-top: var(--space-2);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

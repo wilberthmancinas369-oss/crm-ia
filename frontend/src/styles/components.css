@@ -1,0 +1,145 @@
+/* ---------- Encabezado de página ---------- */
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  padding-bottom: var(--space-2);
+  margin-bottom: var(--space-3);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.page-header h1 {
+  margin: 0;
+  font-size: clamp(1.5rem, 2.4vw, 1.9rem);
+}
+
+/* ---------- Tarjetas ---------- */
+.card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  padding: var(--space-3);
+}
+
+.card-interactiva {
+  cursor: pointer;
+  transition: transform 0.2s var(--curva), border-color 0.2s;
+}
+
+.card-interactiva:hover {
+  transform: translateY(-2px);
+  border-color: var(--color-border-strong);
+}
+
+.card-titulo {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1.1rem;
+  color: var(--color-heading);
+}
+
+/* ---------- Formularios ---------- */
+.campo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.campo label,
+.etiqueta {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--color-heading);
+}
+
+.input {
+  width: 100%;
+  min-height: 2.5rem;
+  padding: 0.5rem 0.75rem;
+  font: inherit;
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: 1.5px solid var(--color-border-strong);
+  border-radius: var(--radius);
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.input::placeholder {
+  color: #6b7285;
+}
+
+.input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgb(233 162 59 / 0.5);
+}
+
+.input[aria-invalid='true'] {
+  border-color: var(--color-danger);
+}
+
+.campo-ayuda {
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+}
+
+.campo-error {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--color-danger);
+}
+
+/* ---------- Insignias ---------- */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.15rem 0.6rem;
+  border-radius: var(--radius-pill);
+  background: #e6ebf2;
+  color: var(--color-text);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.badge-exito { background: var(--color-success-soft); color: var(--color-success); }
+.badge-aviso { background: var(--color-warning-soft); color: var(--color-warning); }
+.badge-error { background: var(--color-danger-soft); color: var(--color-danger); }
+.badge-info  { background: var(--color-info-soft); color: var(--color-info); }
+.badge-ia    { background: var(--cempasuchil); color: var(--tinta); }
+
+/* ---------- Tablas y cifras ---------- */
+.tabla {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.92rem;
+}
+
+.tabla th {
+  padding: 0.6rem 0.75rem;
+  text-align: left;
+  font-size: 0.75rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.tabla td {
+  padding: 0.7rem 0.75rem;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.tabla tbody tr:hover {
+  background: var(--color-surface-muted);
+}
+
+.cifra {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-heading);
+}
