@@ -48,7 +48,7 @@ export default function AceptarInvitacion() {
     try {
       await aceptarInvitacion(token, { nombre, password })
     } catch (error) {
-      console.error('Error al aceptar invitación:', error)
+      console.error('Error al aceptar invitación:', { status: error.response?.status })
       setError('root.servidor', {
         type: 'servidor',
         message: mensajeDelServidor(error, 'No pudimos crear tu cuenta. Inténtalo de nuevo.')
@@ -61,7 +61,7 @@ export default function AceptarInvitacion() {
       await login(invitacion.email, password)
       navigate('/app', { replace: true })
     } catch (error) {
-      console.error('Cuenta creada pero no se pudo iniciar sesión:', error)
+      console.error('Cuenta creada pero no se pudo iniciar sesión:', { status: error.status })
       setCuentaCreadaSinSesion(true)
     }
   }
@@ -153,7 +153,7 @@ export default function AceptarInvitacion() {
             {...register('password', {
               required: 'La contraseña es obligatoria',
               deps: ['confirmarPassword'],
-              minLength: { value: 8, message: 'Debe tener al menos 8 caracteres' },
+              minLength: { value: 10, message: 'Debe tener al menos 10 caracteres' },
               validate: {
                 letra: (v) => /[A-Za-z]/.test(v) || 'Debe incluir al menos una letra',
                 numero: (v) => /\d/.test(v) || 'Debe incluir al menos un número'

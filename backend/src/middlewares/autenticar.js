@@ -1,4 +1,5 @@
 import supabase from '../config/supabase.js';
+import { limitarPeticionesUsuario } from './limitarPeticiones.js';
 
 /**
  * Valida el JWT de Supabase enviado en el header Authorization: Bearer <token>
@@ -18,5 +19,5 @@ export const autenticar = async (req, res, next) => {
   }
 
   req.user = data.user;
-  next();
+  return limitarPeticionesUsuario(req, res, next);
 };

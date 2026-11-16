@@ -15,7 +15,7 @@ const validarToken = param('token').isHexadecimal().isLength({ min: 64, max: 64 
 export const validacionesAceptar = [
   body('nombre').trim().notEmpty().withMessage('Tu nombre es obligatorio'),
   body('nombre').isLength({ max: 100 }).withMessage('El nombre no puede exceder los 100 caracteres'),
-  body('password').isLength({ min: 8 }).withMessage('La contraseña debe tener al menos 8 caracteres'),
+  body('password').isLength({ min: 10 }).withMessage('La contraseña debe tener al menos 10 caracteres'),
   body('password').matches(/[A-Za-z]/).withMessage('La contraseña debe incluir al menos una letra'),
   body('password').matches(/\d/).withMessage('La contraseña debe incluir al menos un número'),
 ];
