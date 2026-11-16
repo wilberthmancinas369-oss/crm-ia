@@ -15,19 +15,20 @@ Base: origin/main `4004fd21e41af5b27b581ce4747b7c482d900fd7`, rama de trabajo `h
 
 | Comprobación | Resultado |
 |---|---|
-| `npm test` en backend | 265 pruebas aprobadas, 0 fallos |
+| `npm test` en backend después de integrar a Juventino | 268 pruebas aprobadas, 0 fallos |
 | Nuevas pruebas `seguridad_http.test.js` | Cabeceras; origen permitido; tres orígenes rechazados sin ejecutar la ruta; preflight; cliente sin Origin; configuración inválida |
 | Aislamiento existente con Supabase simulado | Suite completa aprobada: contactos/oportunidades, filtros, tareas/equipo, grupos, reportes, usuarios e IA incluyen casos de otra empresa |
 | `npm run build` en frontend | Correcto; advertencia de bundle mayor a 500 kB |
 | Auditoría local después del build | Sin secretos privados detectados en frontend ni dist; `.env` locales ignorados; solo ejemplos versionados |
 | Migraciones | Las 12 tablas públicas creadas contienen activación de RLS; no prueba que estén aplicadas en el servidor |
-| Pruebas del limitador de Juventino | 3 aprobadas, ejecutadas desde una copia en memoria de su rama, sin fusionar ni modificarla |
+| Pruebas del limitador de Juventino | 3 aprobadas; incluidas en las 268 pruebas posteriores al merge |
 
 Las pruebas HTTP locales necesitaron ejecutarse fuera del sandbox porque este rechazaba conexiones a 127.0.0.1 con EACCES. No fueron fallos del CRM. No se enviaron correos ni llamadas a Gemini durante las pruebas simuladas.
 
 ## Dependencia del trabajo de Juventino
 
 Rama revisada: `HU-Mejorar-la-seguridad-del-sistema-juventino`, commit `b8589874af0d2a55da9dcedd8f86f1ba6da6a670`.
+Integrada sin conflictos en `hu19-seguridad-daniel` mediante el merge `0feb50e`, después de guardar el trabajo de Daniel en `d31d8e6`. No se modificaron main ni la rama de Juventino. Se repitieron la suite completa, el build del frontend y la auditoría local con ambos trabajos integrados. La rama de Juventino elimina frontend/.env.example; los archivos .env locales se conservaron y siguen ignorados.
 Su middleware limita 100 peticiones por minuto por usuario autenticado, responde 429 con Retry-After y reinicia la ventana. Sus pruebas comprueban el intento 101, independencia entre usuarios, expiración y rechazo sin identidad.
 
 **Eso no prueba el límite de intentos de login.** El frontend llama `supabase.auth.signInWithPassword` directamente; el limitador se ejecuta después de validar el JWT en el backend. La protección de login debe verificarse en Supabase Auth con una cuenta de prueba, sin intentar bloquear una cuenta real. No se duplicó ni alteró el trabajo de contraseñas y rate limit.
