@@ -5,6 +5,7 @@ import PrioridadesIA from '../components/PrioridadesIA.jsx';
 import { useForm } from 'react-hook-form';
 import { useCRM } from '../context/CRMContext.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
+import { Cargando, ErrorCarga } from '../components/EstadoVista.jsx';
 import FiltrosListado from '../components/FiltrosListado.jsx';
 import { useResponsablesFiltro } from '../hooks/useResponsablesFiltro.js';
 import {
@@ -150,6 +151,9 @@ function FormularioOportunidad({ contactos, onCreada }) {
 function DetalleOportunidad({ id, onCerrar, onReasignada }) {
   const { perfil } = useAuth();
   const [oportunidad, setOportunidad] = useState(null);
+  const [errorDetalle, setErrorDetalle] = useState('');
+  const [cargandoInteracciones, setCargandoInteracciones] = useState(true);
+  const [errorInteracciones, setErrorInteracciones] = useState('');
   const [asignables, setAsignables] = useState([]);
   const [interacciones, setInteracciones] = useState([]);
   const [colaboradorNuevo, setColaboradorNuevo] = useState('');
@@ -164,16 +168,27 @@ function DetalleOportunidad({ id, onCerrar, onReasignada }) {
   const { register, handleSubmit, reset, formState: { errors } } = useForm({ defaultValues: { tipo: 'Llamada', detalle: '' } });
 
   const cargar = async () => {
+    setErrorDetalle('');
     try {
-      const datos = await obtenerOportunidadPorId(id);
-      setOportunidad(datos);
-      setInteracciones(await listarInteracciones({ oportunidadId: id }));
+      setOportunidad(await obtenerOportunidadPorId(id));
     } catch (error) {
-      alert(mensajeDelServidor(error, 'No se pudo cargar la oportunidad'));
+      setErrorDetalle(mensajeDelServidor(error, 'No se pudo cargar la oportunidad.'));
     }
   };
 
-  useEffect(() => { cargar(); }, [id]);
+  const cargarInteracciones = async () => {
+    setCargandoInteracciones(true);
+    setErrorInteracciones('');
+    try {
+      setInteracciones(await listarInteracciones({ oportunidadId: id }));
+    } catch (error) {
+      setErrorInteracciones(mensajeDelServidor(error, 'No se pudieron cargar las interacciones.'));
+    } finally {
+      setCargandoInteracciones(false);
+    }
+  };
+
+  useEffect(() => { cargar(); cargarInteracciones(); }, [id]);
 
   // El historial se carga aparte: si falla, el resto del detalle sigue funcionando
   const cargarHistorial = async () => {
@@ -201,9 +216,8 @@ function DetalleOportunidad({ id, onCerrar, onReasignada }) {
     listarAsignables(grupoId).then(setAsignables).catch(() => setAsignables([]));
   }, [grupoId, puedeGestionar]);
 
-  if (!oportunidad) {
-    return <div className="card texto-suave text-sm">Cargando…</div>;
-  }
+  if (errorDetalle) return <ErrorCarga onReintentar={cargar} onCerrar={onCerrar}>{errorDetalle}</ErrorCarga>;
+  if (!oportunidad) return <div className="card"><Cargando>Cargando oportunidad…</Cargando></div>;
 
   const colaboradores = oportunidad.colaboradores ?? [];
   const disponibles = asignables.filter(
@@ -267,7 +281,7 @@ function DetalleOportunidad({ id, onCerrar, onReasignada }) {
   };
 
   return (
-    <div className="card space-y-5">
+    <div className="card space-y-5 entrada-crm">
       <div className="panel-cabecera">
         <div className="min-w-0">
           <h3 className="card-titulo break-words">{oportunidad.nombre_oportunidad}</h3>
@@ -356,7 +370,9 @@ function DetalleOportunidad({ id, onCerrar, onReasignada }) {
           </button>
         </form>
         <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
-          {interacciones.length === 0 ? (
+          {cargandoInteracciones ? <Cargando>Cargando interacciones…</Cargando> : errorInteracciones ? (
+            <ErrorCarga onReintentar={cargarInteracciones}>{errorInteracciones}</ErrorCarga>
+          ) : interacciones.length === 0 ? (
             <p className="vacio">Sin interacciones registradas.</p>
           ) : interacciones.map((i) => (
             <div key={i.id} className="item-suave space-y-1">
@@ -400,16 +416,23 @@ function DetalleOportunidad({ id, onCerrar, onReasignada }) {
 
 // ---------- Página ----------
 export default function Oportunidades() {
-  const { contactos } = useCRM();
+  const { contactos, cargando: cargandoContactos, errorContactos, cargarContactos } = useCRM();
   const { oportunidades, filtros, setFiltros, cargando, error, actualizar, recargar } = useOportunidades();
   const { responsables, error: errorResponsables, cargando: cargandoResponsables } = useResponsablesFiltro();
   const [seleccionada, setSeleccionada] = useState(null);
+  const [guardandoEtapa, setGuardandoEtapa] = useState(null);
+  const [errorEtapa, setErrorEtapa] = useState('');
 
   const cambiarEtapa = async (id, etapa) => {
+    if (guardandoEtapa) return;
+    setGuardandoEtapa(id);
+    setErrorEtapa('');
     try {
       await actualizar(id, { etapa });
     } catch (err) {
-      alert(mensajeDelServidor(err, 'No se pudo cambiar la etapa'));
+      setErrorEtapa(mensajeDelServidor(err, 'No se pudo cambiar la etapa.'));
+    } finally {
+      setGuardandoEtapa(null);
     }
   };
 
@@ -434,7 +457,9 @@ export default function Oportunidades() {
         <Link to="/app/pipeline" className="btn shrink-0">Ver pipeline</Link>
       </div>
 
-      <FormularioOportunidad contactos={contactos} onCreada={recargar} />
+      {cargandoContactos ? <Cargando>Cargando contactos para el formulario…</Cargando> : errorContactos ? (
+        <ErrorCarga onReintentar={cargarContactos}>{errorContactos}</ErrorCarga>
+      ) : <FormularioOportunidad contactos={contactos} onCreada={recargar} />}
       <PrioridadesIA onVer={setSeleccionada} oportunidades={oportunidades} />
 
       <FiltrosListado cargando={cargando} onAplicar={(valores) => { setSeleccionada(null); setFiltros(valores); }} campos={[
@@ -448,6 +473,7 @@ export default function Oportunidades() {
         { nombre: 'monto_max', etiqueta: 'Monto máximo', tipo: 'number', placeholder: 'Hasta' }
       ]} />
       {errorResponsables && <p role="alert" className="alerta alerta-error">{errorResponsables}</p>}
+      {errorEtapa && <ErrorCarga>{errorEtapa}</ErrorCarga>}
 
       {error && <div role="alert" className="alerta alerta-error">
         <p>{error}</p><button type="button" className="btn btn-sm mt-2" onClick={recargar}>Reintentar</button>
@@ -470,7 +496,7 @@ export default function Oportunidades() {
               </thead>
               <tbody>
                 {cargando ? (
-                  <tr><td colSpan="7" className="vacio">Cargando oportunidades…</td></tr>
+                  <tr><td colSpan="7" className="vacio"><Cargando>Cargando oportunidades…</Cargando></td></tr>
                 ) : error ? null : oportunidades.length === 0 ? (
                   <tr><td colSpan="7" className="vacio"><p role="status">{Object.keys(filtros).length ? 'No se encontraron resultados con los filtros seleccionados.' : 'No hay oportunidades registradas.'}</p></td></tr>
                 ) : oportunidades.map((o) => (
@@ -480,9 +506,10 @@ export default function Oportunidades() {
                     <td className="cifra whitespace-nowrap">{formatoMonto(o.valor_estimado)}</td>
                     <td>
                       <select aria-label={`Etapa de ${o.nombre_oportunidad}`} value={o.etapa} onChange={(e) => cambiarEtapa(o.id, e.target.value)}
-                        className={`select-etapa ${tonoEtapa(o.etapa)}`}>
+                        disabled={Boolean(guardandoEtapa)} className={`select-etapa ${tonoEtapa(o.etapa)}${guardandoEtapa === o.id ? ' etapa-guardando' : ''}`}>
                         {ETAPAS.map((e) => <option key={e.valor} value={e.valor}>{e.valor}</option>)}
                       </select>
+                      {guardandoEtapa === o.id && <p role="status" className="texto-suave text-xs">Guardando etapa…</p>}
                     </td>
                     <td>{nombreDe(o.responsable)}</td>
                     <td className="whitespace-nowrap">{formatoFecha(o.fecha_cierre_prevista)}</td>

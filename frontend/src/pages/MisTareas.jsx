@@ -5,6 +5,7 @@ import { listarMisTareas, crearTarea, actualizarTarea, completarTarea } from '..
 import { listarContactos } from '../services/contactos';
 import { listarOportunidades } from '../services/oportunidades';
 import ErrorMessage from '../components/ErrorMessage';
+import { Cargando } from '../components/EstadoVista';
 import { tienePermisoEnGrupo } from '../hooks/useGruposPermitidos';
 import FiltrosListado from '../components/FiltrosListado';
 import { useListadoFiltrado } from '../hooks/useListadoFiltrado';
@@ -104,7 +105,7 @@ export default function MisTareas() {
         </div>
       </div>
 
-      {cargando ? <p role="status" className="texto-suave">Cargando tareas...</p> : errorCarga ? (
+      {cargando ? <Cargando>Cargando contactos y oportunidades…</Cargando> : errorCarga ? (
         <div role="alert" className="alerta alerta-error space-y-3">
           <p>{errorCarga}</p>
           <button type="button" className="btn btn-sm" onClick={() => setIntento((valor) => valor + 1)}>Reintentar</button>
@@ -183,7 +184,7 @@ export default function MisTareas() {
             <div className="px-5 py-4 border-b border-[var(--color-border)]">
               <h2 id="lista-tareas" className="card-titulo">{filtros.responsable_id ? 'Tareas encontradas' : 'Mis tareas'}</h2>
             </div>
-            {cargandoLista ? <p role="status" className="vacio">Cargando tareas...</p> : errorLista ? null : !tareas.length ? <p role="status" className="vacio">{Object.keys(filtros).length ? 'No se encontraron resultados con los filtros seleccionados.' : 'Aún no tienes tareas asignadas.'}</p> : (
+            {cargandoLista ? <div className="vacio"><Cargando>Cargando tareas…</Cargando></div> : errorLista ? null : !tareas.length ? <p role="status" className="vacio">{Object.keys(filtros).length ? 'No se encontraron resultados con los filtros seleccionados.' : 'Aún no tienes tareas asignadas.'}</p> : (
               <ul className="lista-divisores">
                 {tareas.map((tarea) => (
                   <li key={tarea.id} className="p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">

@@ -75,7 +75,7 @@ export default function DashboardLayout() {
       <main id="contenido" tabIndex={-1} className="dashboard-main">
         {/* key: al cambiar de cuenta se descartan los contactos de la anterior */}
         <CRMProvider key={perfil.usuario.id}>
-          <Outlet />
+          <div key={pathname} className="entrada-crm"><Outlet /></div>
         </CRMProvider>
       </main>
     </div>

@@ -3,6 +3,7 @@ import { reportesService } from '../services/reportes';
 import { useAuth } from '../context/AuthContext';
 import { listarGrupos } from '../services/grupos';
 import { tonoEtapa } from '../constants/estilos';
+import { Cargando, ErrorCarga } from '../components/EstadoVista';
 
 export default function Reportes() {
   const { perfil } = useAuth();
@@ -77,14 +78,11 @@ export default function Reportes() {
         )}
       </header>
       {error ? (
-        <div role="alert" className="alerta alerta-error space-y-3">
-          <p>{error}</p>
-          <button type="button" className="btn btn-sm" onClick={() => setIntento(n => n + 1)}>Reintentar</button>
-        </div>
+        <ErrorCarga onReintentar={() => setIntento(n => n + 1)}>{error}</ErrorCarga>
       ) : grupos?.length === 0 ? (
-        <p className="texto-suave">No hay grupos disponibles para consultar.</p>
+        <p className="texto-suave" role="status">No hay grupos disponibles para consultar.</p>
       ) : !data ? (
-        <p role="status" className="texto-suave">Cargando reporte...</p>
+        <Cargando>Cargando reporte…</Cargando>
       ) : (
         <>
           {data.ventasDisponible === false ? (

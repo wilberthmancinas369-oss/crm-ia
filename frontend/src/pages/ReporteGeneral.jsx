@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { reportesService } from '../services/reportes';
+import { Cargando, ErrorCarga } from '../components/EstadoVista';
 
 const formatoMoneda = (monto) =>
   new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(monto || 0);
@@ -26,15 +27,12 @@ export default function ReporteGeneral() {
 
   if (error) {
     return (
-      <div role="alert" className="max-w-7xl mx-auto">
-        <div className="alerta alerta-error space-y-3">
-          <p>{error}</p>
-          <button type="button" className="btn btn-sm" onClick={() => setIntento((n) => n + 1)}>Reintentar</button>
-        </div>
+      <div className="max-w-7xl mx-auto">
+        <ErrorCarga onReintentar={() => setIntento((n) => n + 1)}>{error}</ErrorCarga>
       </div>
     );
   }
-  if (!reporte) return <p role="status" className="texto-suave">Cargando comparativa de grupos...</p>;
+  if (!reporte) return <Cargando>Cargando comparativa de grupos…</Cargando>;
 
   const { totales, grupos } = reporte;
   const maximoMonto = Math.max(1, ...grupos.map((g) => g.montoTotal));
@@ -65,7 +63,7 @@ export default function ReporteGeneral() {
       </div>
 
       {grupos.length === 0 ? (
-        <p className="texto-suave">Todavía no hay grupos en la empresa.</p>
+        <p className="texto-suave" role="status">Todavía no hay grupos en la empresa.</p>
       ) : (
         <>
           <section className="card space-y-4">

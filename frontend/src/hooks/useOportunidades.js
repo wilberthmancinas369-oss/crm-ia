@@ -9,7 +9,7 @@ export function useOportunidades() {
   // Recarga con los filtros activos: cambiar de etapa puede quitarla de esta lista.
   const actualizar = async (id, datos) => {
     const actualizada = await actualizarOportunidad(id, datos)
-    await listado.recargar()
+    await listado.recargar({ mostrarCarga: false })
     return actualizada
   }
 

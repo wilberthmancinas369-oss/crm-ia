@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import { Cargando, ErrorCarga } from '../components/EstadoVista'
 import { Link } from 'react-router-dom'
 import FormularioGrupo from '../components/FormularioGrupo'
 import ErrorMessage from '../components/ErrorMessage'
@@ -190,6 +191,7 @@ export default function Grupos() {
   const [error, setError] = useState(null)
 
   const cargarGrupos = useCallback(async () => {
+    setGrupos(null)
     try {
       setError(null)
       setGrupos(await listarGruposConMiembros())
@@ -267,13 +269,12 @@ export default function Grupos() {
         {puede('crearGrupos') && <FormularioGrupo onCreado={cargarGrupos} />}
 
         <div className={`space-y-4 ${puede('crearGrupos') ? 'lg:col-span-2' : 'lg:col-span-3'}`}>
-          {error && (
-            <p role="alert" className="p-3 rounded-md text-sm bg-red-100 text-red-800">{error}</p>
-          )}
-          {grupos === null ? (
-            <p className="text-gray-500">Cargando grupos...</p>
-          ) : grupos.length === 0 && !error ? (
-            <p className="text-gray-500">
+          {error ? (
+            <ErrorCarga onReintentar={cargarGrupos}>{error}</ErrorCarga>
+          ) : grupos === null ? (
+            <Cargando>Cargando grupos…</Cargando>
+          ) : grupos.length === 0 ? (
+            <p role="status" className="texto-suave">
               {puede('crearGrupos') ? 'Todavía no hay grupos. Crea el primero con el formulario.' : 'No diriges ningún grupo.'}
             </p>
           ) : (

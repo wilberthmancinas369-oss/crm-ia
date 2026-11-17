@@ -516,3 +516,45 @@
   font-size: 0.85rem;
   color: var(--color-text-muted);
 }
+
+/* Respuesta breve al navegar, cargar y confirmar un cambio de etapa. */
+.entrada-crm {
+  animation: entrada-crm 180ms var(--curva);
+}
+
+@keyframes entrada-crm {
+  from { opacity: 0.65; transform: translateY(3px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.estado-cargando {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.estado-cargando::before {
+  content: '';
+  width: 0.85rem;
+  height: 0.85rem;
+  flex-shrink: 0;
+  border: 2px solid var(--color-border);
+  border-top-color: var(--color-secondary);
+  border-radius: 50%;
+  animation: giro-carga 800ms linear infinite;
+}
+
+@keyframes giro-carga {
+  to { transform: rotate(1turn); }
+}
+
+.select-etapa, .ficha-op {
+  transition: background-color 180ms, color 180ms, opacity 180ms, box-shadow 180ms;
+}
+
+.etapa-guardando { opacity: 0.65; }
+
+@media (prefers-reduced-motion: reduce) {
+  .entrada-crm, .estado-cargando::before { animation: none; }
+  .select-etapa, .ficha-op { transition: none !important; }
+}

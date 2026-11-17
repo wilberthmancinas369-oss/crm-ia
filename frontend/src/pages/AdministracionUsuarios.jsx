@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from 'react'
+import { Cargando, ErrorCarga } from '../components/EstadoVista'
 import { useAuth } from '../context/AuthContext'
 import { listarGruposConMiembros } from '../services/grupos'
 import { listarRolesInvitables } from '../services/roles'
@@ -18,6 +19,7 @@ export default function AdministracionUsuarios() {
   const [cargandoAccion, setCargandoAccion] = useState(null) // fila (usuario + grupo) en proceso
 
   const cargarDatos = useCallback(async () => {
+    setUsuarios(null)
     try {
       setError(null)
       // El backend ya filtra: el Jefe de Área solo recibe los grupos que dirige
@@ -75,12 +77,10 @@ export default function AdministracionUsuarios() {
         </p>
       </div>
 
-      {error && (
-        <p role="alert" className="p-3 rounded-md text-sm bg-red-100 text-red-800">{error}</p>
-      )}
-
-      {usuarios === null ? (
-        <p className="text-gray-500">Cargando usuarios...</p>
+      {error ? (
+        <ErrorCarga onReintentar={cargarDatos}>{error}</ErrorCarga>
+      ) : usuarios === null ? (
+        <Cargando>Cargando usuarios…</Cargando>
       ) : (
         <div className="overflow-x-auto bg-white rounded-lg shadow-sm border border-gray-200">
           <table className="w-full text-sm text-left">
@@ -95,7 +95,7 @@ export default function AdministracionUsuarios() {
             <tbody className="divide-y divide-gray-100">
               {listaUsuarios.length === 0 ? (
                 <tr>
-                  <td colSpan={puedeEliminar ? 4 : 3} className="px-4 py-8 text-center text-gray-500">No hay usuarios registrados en grupos.</td>
+                  <td colSpan={puedeEliminar ? 4 : 3} className="px-4 py-8 text-center text-gray-500"><p role="status">No hay usuarios registrados en grupos.</p></td>
                 </tr>
               ) : (
                 listaUsuarios.map((u) => {

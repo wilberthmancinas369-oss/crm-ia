@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { useOportunidades } from '../hooks/useOportunidades'
 import { ETAPAS, formatoFecha, formatoMonto } from '../constants/crm'
 import { tonoEtapa } from '../constants/estilos'
+import { Cargando, ErrorCarga } from '../components/EstadoVista'
 
 const mensajeDelServidor = (error, porDefecto) =>
   error.response?.data?.error || error.response?.data?.errors?.[0]?.msg || porDefecto
@@ -10,17 +11,26 @@ const mensajeDelServidor = (error, porDefecto) =>
 // Vista pipeline (HU 4.1): una columna por etapa de venta. Las tarjetas se arrastran entre
 // columnas para cambiar la etapa; el selector de cada tarjeta hace lo mismo sin arrastrar.
 export default function Pipeline() {
-  const { oportunidades, cargando, error, actualizar } = useOportunidades()
+  const { oportunidades, cargando, error, actualizar, recargar } = useOportunidades()
   const [arrastrando, setArrastrando] = useState(null)
   const [columnaDestino, setColumnaDestino] = useState(null)
+  const [movimiento, setMovimiento] = useState(null)
+  const [ultimaMovida, setUltimaMovida] = useState(null)
+  const [errorEtapa, setErrorEtapa] = useState('')
 
   const mover = async (id, etapa) => {
     const oportunidad = oportunidades.find((o) => o.id === id)
-    if (!oportunidad || oportunidad.etapa === etapa) return
+    if (movimiento || !oportunidad || oportunidad.etapa === etapa) return
+    setMovimiento(id)
+    setUltimaMovida(null)
+    setErrorEtapa('')
     try {
       await actualizar(id, { etapa })
+      setUltimaMovida({ id, etapa, nombre: oportunidad.nombre_oportunidad })
     } catch (err) {
-      alert(mensajeDelServidor(err, 'No se pudo mover la oportunidad'))
+      setErrorEtapa(mensajeDelServidor(err, 'No se pudo mover la oportunidad.'))
+    } finally {
+      setMovimiento(null)
     }
   }
 
@@ -45,10 +55,17 @@ export default function Pipeline() {
         <Link to="/app/oportunidades" className="btn btn-outline">Ver lista y crear</Link>
       </div>
 
-      {error && <p role="alert" className="alerta alerta-error">{error}</p>}
+      {errorEtapa && <ErrorCarga>{errorEtapa}</ErrorCarga>}
+      <p role="status" className="sr-only">
+        {movimiento ? 'Guardando cambio de etapa…' : ultimaMovida && `${ultimaMovida.nombre} pasó a ${ultimaMovida.etapa}.`}
+      </p>
 
       {cargando ? (
-        <p className="texto-suave">Cargando pipeline…</p>
+        <Cargando>Cargando pipeline…</Cargando>
+      ) : error ? (
+        <ErrorCarga onReintentar={recargar}>{error}</ErrorCarga>
+      ) : oportunidades.length === 0 ? (
+        <p role="status" className="card vacio">No hay oportunidades en el pipeline.</p>
       ) : (
         <>
           <div className="kpis">
@@ -92,10 +109,10 @@ export default function Pipeline() {
                     {tarjetas.map((o) => (
                       <article
                         key={o.id}
-                        draggable
+                        draggable={!movimiento}
                         onDragStart={(e) => { e.dataTransfer.setData('text/plain', o.id); setArrastrando(o.id) }}
                         onDragEnd={() => { setArrastrando(null); setColumnaDestino(null) }}
-                        className={`ficha-op${arrastrando === o.id ? ' arrastrando' : ''}`}
+                        className={`ficha-op${arrastrando === o.id ? ' arrastrando' : ''}${movimiento === o.id ? ' etapa-guardando' : ''}${ultimaMovida?.id === o.id && ultimaMovida.etapa === o.etapa ? ' entrada-crm' : ''}`}
                       >
                         <h3 className="ficha-op-titulo">{o.nombre_oportunidad}</h3>
                         <p className="ficha-op-sub">
@@ -109,11 +126,13 @@ export default function Pipeline() {
                         <select
                           aria-label={`Mover ${o.nombre_oportunidad} a otra etapa`}
                           value={o.etapa}
+                          disabled={Boolean(movimiento)}
                           onChange={(e) => mover(o.id, e.target.value)}
                           className="input input-chico mt-2"
                         >
                           {ETAPAS.map((e) => <option key={e.valor} value={e.valor}>{e.valor}</option>)}
                         </select>
+                        {movimiento === o.id && <p className="ficha-op-pie">Guardando etapa…</p>}
                       </article>
                     ))}
                   </div>

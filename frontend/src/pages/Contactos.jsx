@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
+import { Cargando, ErrorCarga } from '../components/EstadoVista.jsx';
 import { useForm } from 'react-hook-form';
 import { useCRM } from '../context/CRMContext.jsx';
 import { obtenerContactoPorId, listarContactos } from '../services/contactos.js';
@@ -41,7 +42,7 @@ function FichaContacto({ ficha, onCerrar, onInteraccionCreada }) {
   const redes = REDES_SOCIALES.filter((r) => ficha.redes_sociales?.[r.clave]);
 
   return (
-    <div className="card space-y-5">
+    <div className="card space-y-5 entrada-crm">
       <div className="panel-cabecera">
         <div className="min-w-0">
           <h3 className="card-titulo break-words">{ficha.nombre} {ficha.apellido}</h3>
@@ -139,6 +140,8 @@ export default function Contactos() {
   const { datos: contactos, filtros, setFiltros, cargando, error, recargar } = useListadoFiltrado(listarContactos);
   const gruposPermitidos = useGruposPermitidos('gestionarCRM');
   const [ficha, setFicha] = useState(null);
+  const [detalle, setDetalle] = useState(null);
+  const solicitudFicha = useRef(0);
   const [mostrarRedes, setMostrarRedes] = useState(false);
 
   const {
@@ -154,12 +157,24 @@ export default function Contactos() {
   });
 
   const cargarFicha = async (id) => {
+    const solicitud = ++solicitudFicha.current;
+    setDetalle({ id, cargando: true });
     try {
-      setFicha(await obtenerContactoPorId(id));
+      const contacto = await obtenerContactoPorId(id);
+      if (solicitud !== solicitudFicha.current) return;
+      setFicha(contacto);
+      setDetalle({ id });
     } catch (error) {
-      console.error('Error al cargar el contacto:', error);
-      alert('No se pudo cargar la ficha del contacto');
+      if (solicitud === solicitudFicha.current) {
+        setDetalle({ id, error: mensajeDelServidor(error, 'No se pudo cargar la ficha del contacto.') });
+      }
     }
+  };
+
+  const cerrarFicha = () => {
+    solicitudFicha.current++;
+    setDetalle(null);
+    setFicha(null);
   };
 
   const onCrearContacto = async (datos) => {
@@ -178,7 +193,7 @@ export default function Contactos() {
     try {
       await borrarContacto(id);
       await recargar();
-      if (ficha?.id === id) setFicha(null);
+      if (detalle?.id === id) cerrarFicha();
     } catch (error) {
       alert(mensajeDelServidor(error, 'Error al eliminar el contacto'));
     }
@@ -240,7 +255,7 @@ export default function Contactos() {
         </form>
       </section>
 
-      <FiltrosListado cargando={cargando} onAplicar={(valores) => { setFicha(null); setFiltros(valores); }} campos={[
+      <FiltrosListado cargando={cargando} onAplicar={(valores) => { cerrarFicha(); setFiltros(valores); }} campos={[
         { nombre: 'nombre', etiqueta: 'Nombre o apellido', placeholder: 'Buscar contacto' },
         { nombre: 'empresa', etiqueta: 'Empresa', placeholder: 'Empresa del contacto' },
         { nombre: 'estado', etiqueta: 'Estado', opciones: [
@@ -252,7 +267,7 @@ export default function Contactos() {
       </div>}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
-        <div className={`card-plana ${ficha ? 'lg:col-span-2' : 'lg:col-span-3'}`}>
+        <div className={`card-plana ${detalle ? 'lg:col-span-2' : 'lg:col-span-3'}`}>
           <div className="overflow-x-auto">
             <table className="tabla">
               <thead>
@@ -266,12 +281,12 @@ export default function Contactos() {
               </thead>
               <tbody>
                 {cargando ? (
-                  <tr><td colSpan="5" className="vacio" role="status">Cargando contactos...</td></tr>
+                  <tr><td colSpan="5" className="vacio"><Cargando>Cargando contactos…</Cargando></td></tr>
                 ) : error ? null : contactos.length === 0 ? (
                   <tr><td colSpan="5" className="vacio"><p role="status">{Object.keys(filtros).length ? 'No se encontraron resultados con los filtros seleccionados.' : 'No hay contactos registrados.'}</p></td></tr>
                 ) : (
                   contactos.map((c) => (
-                    <tr key={c.id} className={ficha?.id === c.id ? 'fila-activa' : ''}>
+                    <tr key={c.id} className={detalle?.id === c.id ? 'fila-activa' : ''}>
                       <td className="font-semibold">{c.nombre} {c.apellido}</td>
                       <td>{c.cargo || '—'}</td>
                       <td>{c.empresa_cliente || '—'}</td>
@@ -290,9 +305,9 @@ export default function Contactos() {
           </div>
         </div>
 
-        {ficha && (
-          <FichaContacto ficha={ficha} onCerrar={() => setFicha(null)} onInteraccionCreada={() => cargarFicha(ficha.id)} />
-        )}
+        {detalle?.cargando ? <div className="card"><Cargando>Cargando ficha…</Cargando></div> : detalle?.error ? (
+          <ErrorCarga onReintentar={() => cargarFicha(detalle.id)} onCerrar={cerrarFicha}>{detalle.error}</ErrorCarga>
+        ) : ficha && <FichaContacto key={ficha.id} ficha={ficha} onCerrar={cerrarFicha} onInteraccionCreada={() => cargarFicha(ficha.id)} />}
       </div>
     </div>
   );
