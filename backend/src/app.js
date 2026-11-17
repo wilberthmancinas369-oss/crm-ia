@@ -1,5 +1,5 @@
 import express from 'express';
-import cors from 'cors';
+import { configurarSeguridad } from './middlewares/seguridad.js';
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -20,7 +20,7 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // Middlewares
-app.use(cors());
+configurarSeguridad(app);
 app.use(express.json());
 
 // Registro de rutas
