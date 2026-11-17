@@ -66,7 +66,7 @@ export default function InvitarUsuario() {
     <div className="p-6 max-w-2xl mx-auto space-y-6">
       <div className="border-b pb-4 border-gray-200">
         <h1 className="text-2xl font-bold text-gray-800">Invitar usuario</h1>
-        <p className="text-sm text-gray-500 mt-1">
+        <p className="subtitulo">
           El invitado recibirá un correo con un enlace válido por 7 días.
         </p>
       </div>

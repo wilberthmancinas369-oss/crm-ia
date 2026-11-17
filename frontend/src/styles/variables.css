@@ -1,21 +1,59 @@
 :root {
-  /* Paleta de la presentación (Sprint 0) */
-  --color-primary: #1f2a5c;
-  --color-secondary: #2e7f8f;
-  --color-bg: #f3f4f8;
+  /* Marca: misma paleta que la landing (HU-18) */
+  --tinta: #1f2a5c;
+  --tinta-media: #2b3d86;
+  --tinta-oscura: #141b44;
+  --laguna: #2e7f8f;
+  --cempasuchil: #e9a23b;
+  --cempasuchil-claro: #f6c470;
+  --cempasuchil-oscuro: #d98c1f;
 
+  /* Semánticos (nombres anteriores conservados) */
+  --color-primary: var(--tinta);
+  --color-secondary: var(--laguna);
+  --color-accent: var(--cempasuchil);
+  --color-heading: var(--tinta);
+  --color-bg: #edf1f5;
   --color-surface: #ffffff;
-  --color-text: #1b1f2e;
+  --color-surface-muted: #f6f8fb;
+  --color-text: #3d4459;
   --color-text-muted: #5b6275;
-  --color-border: #dfe2ea;
+  --color-border: #d5dce6;
+  --color-border-strong: #aab6c8;
   --color-on-primary: #ffffff;
 
-  --font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-  --radius: 8px;
+  /* Etapas del pipeline (igual que la landing) */
+  --etapa-0: #5b8bd9;
+  --etapa-1: #2e7f8f;
+  --etapa-2: #e9a23b;
+
+  /* Estados */
+  --color-success: #1f7a4d;
+  --color-success-soft: #e8f5ee;
+  --color-warning: #8a5a12;
+  --color-warning-soft: #fdf3e2;
+  --color-danger: #b42318;
+  --color-danger-soft: #fdecea;
+  --color-info: #2a5ca8;
+  --color-info-soft: #e8f0fc;
+
+  /* Tipografía */
+  --font-display: 'Bricolage Grotesque', 'Segoe UI', sans-serif;
+  --font-family: 'Atkinson Hyperlegible Next', 'Atkinson Hyperlegible', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+
+  /* Espaciado (se conserva) */
   --space-1: 0.5rem;
   --space-2: 1rem;
   --space-3: 1.5rem;
   --space-4: 2rem;
+
+  /* Forma y elevación */
+  --radius: 10px;
+  --radius-lg: 14px;
+  --radius-pill: 999px;
+  --shadow-sm: 0 1px 2px rgb(31 42 92 / 0.06), 0 8px 20px -12px rgb(31 42 92 / 0.35);
+  --shadow-lg: 0 2px 4px rgb(31 42 92 / 0.06), 0 30px 70px -30px rgb(31 42 92 / 0.6);
+  --curva: cubic-bezier(0.2, 0.8, 0.2, 1);
 
   --sidebar-width: 240px;
 }

@@ -10,17 +10,20 @@ const CRMContext = createContext();
 export function CRMProvider({ children }) {
   const [contactos, setContactos] = useState([]);
   const [cargando, setCargando] = useState(true);
+  const [errorContactos, setErrorContactos] = useState('');
 
   useEffect(() => {
     cargarContactos();
   }, []);
 
   const cargarContactos = async () => {
+    setCargando(true);
+    setErrorContactos('');
     try {
       const data = await listarContactos();
       setContactos(data);
     } catch (error) {
-      console.error('Error al cargar contactos:', error);
+      setErrorContactos(error.response?.data?.error || 'No se pudieron cargar los contactos.');
     } finally {
       setCargando(false);
     }
@@ -40,7 +43,7 @@ export function CRMProvider({ children }) {
   };
 
   return (
-    <CRMContext.Provider value={{ contactos, agregarContacto, borrarContacto, cargando }}>
+    <CRMContext.Provider value={{ contactos, agregarContacto, borrarContacto, cargando, errorContactos, cargarContactos }}>
       {children}
     </CRMContext.Provider>
   );
