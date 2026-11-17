@@ -21,7 +21,20 @@ export default function ResetPassword() {
       <h1 className="text-2xl font-bold mb-1">Nueva contraseña</h1>
       <p className="text-sm text-gray-500 mb-6">Crea una contraseña segura.</p>
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-        <input {...register('password', { required: 'Obligatorio', minLength: { value: 10, message: 'Mínimo 10 caracteres' } })} type="password" className="w-full border rounded-md p-2" placeholder="Nueva contraseña" />
+        <input
+          {...register('password', {
+            required: 'La contraseña es obligatoria',
+            minLength: { value: 10, message: 'Debe tener al menos 10 caracteres' },
+            validate: {
+              letra: (v) => /[A-Za-z]/.test(v) || 'Debe incluir al menos una letra',
+              numero: (v) => /\d/.test(v) || 'Debe incluir al menos un número'
+            }
+          })}
+          type="password"
+          autoComplete="new-password"
+          className="w-full border rounded-md p-2"
+          placeholder="Nueva contraseña"
+        />
         {errors.password && <p role="alert" className="text-sm text-red-600">{errors.password.message}</p>}
         <button type="submit" disabled={isSubmitting} className="btn w-full">Cambiar contraseña</button>
       </form>
