@@ -169,7 +169,7 @@ export default function RegistroEmpresa() {
             {...register('password', {
               required: 'La contraseña es obligatoria',
               deps: ['confirmarPassword'], // si cambia, vuelve a comparar con la confirmación
-              minLength: { value: 8, message: 'Debe tener al menos 8 caracteres' },
+              minLength: { value: 10, message: 'Debe tener al menos 10 caracteres' },
               validate: {
                 letra: (v) => /[A-Za-z]/.test(v) || 'Debe incluir al menos una letra',
                 numero: (v) => /\d/.test(v) || 'Debe incluir al menos un número'

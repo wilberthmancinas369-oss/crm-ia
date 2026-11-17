@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { Cargando, ErrorCarga } from '../components/EstadoVista';
 import { listarTareasEquipo, asignarTarea, actualizarTarea, eliminarTarea } from '../services/tareas';
 import { listarAsignables } from '../services/grupos';
 import { useGruposPermitidos } from '../hooks/useGruposPermitidos';
@@ -125,14 +126,11 @@ export default function TareasEquipo() {
     <div className="p-4 sm:p-6 max-w-7xl mx-auto space-y-6">
       <div className="border-b pb-4 border-gray-200">
         <h1 className="text-2xl font-bold text-gray-800">Tareas del equipo</h1>
-        <p className="text-sm text-gray-500 mt-1">Consulta las tareas de los miembros de tu grupo, asígnalas a otra persona, edítalas o elimínalas.</p>
+        <p className="subtitulo">Consulta las tareas de los miembros de tu grupo, asígnalas a otra persona, edítalas o elimínalas.</p>
       </div>
 
-      {cargando ? <p role="status" className="text-sm text-gray-500">Cargando tareas...</p> : errorCarga ? (
-        <div role="alert" className="bg-red-100 text-red-800 p-4 rounded-lg space-y-3">
-          <p>{errorCarga}</p>
-          <button type="button" className="btn" onClick={() => setIntento((valor) => valor + 1)}>Reintentar</button>
-        </div>
+      {cargando ? <Cargando>Cargando tareas del equipo…</Cargando> : errorCarga ? (
+        <ErrorCarga onReintentar={() => setIntento((valor) => valor + 1)}>{errorCarga}</ErrorCarga>
       ) : (
         <>
           <section className="bg-white p-4 rounded-lg shadow-sm border border-gray-200 grid grid-cols-1 sm:grid-cols-3 gap-3" aria-label="Filtros">
@@ -163,7 +161,7 @@ export default function TareasEquipo() {
               <h2 id="lista-equipo" className="font-semibold text-gray-700">Tareas</h2>
               <span className="text-sm text-gray-500">{visibles.length} de {tareas.length}</span>
             </div>
-            {!visibles.length ? <p className="text-sm text-gray-500 text-center p-6">
+            {!visibles.length ? <p role="status" className="vacio">
               {tareas.length ? 'Ninguna tarea coincide con los filtros.' : 'Tu equipo aún no tiene tareas.'}
             </p> : (
               <ul className="divide-y divide-gray-100">

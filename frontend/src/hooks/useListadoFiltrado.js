@@ -10,9 +10,9 @@ export function useListadoFiltrado(listar) {
   const filtrosActuales = useRef(filtros);
   filtrosActuales.current = filtros;
 
-  const recargar = useCallback(async () => {
+  const recargar = useCallback(async ({ mostrarCarga = true } = {}) => {
     const numero = ++solicitud.current;
-    setCargando(true);
+    if (mostrarCarga) setCargando(true);
     setError('');
     try {
       const resultado = await listar(filtrosActuales.current);
