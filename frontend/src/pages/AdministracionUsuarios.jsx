@@ -70,7 +70,7 @@ export default function AdministracionUsuarios() {
     <div className="p-6 max-w-7xl mx-auto space-y-6">
       <div className="border-b pb-4 border-gray-200">
         <h1 className="text-2xl font-bold text-gray-800">Administración de Usuarios</h1>
-        <p className="text-sm text-gray-500">
+        <p className="subtitulo">
           {esAdmin
             ? 'Gestiona los roles y la asignación de grupos de los miembros de la empresa.'
             : 'Gestiona a los Agentes de los grupos que diriges.'}

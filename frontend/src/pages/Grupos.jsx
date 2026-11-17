@@ -119,7 +119,7 @@ function TarjetaGrupo({ grupo, onAccionInvitacion, onRenombrar, onEliminar }) {
               </button>
             )}
             {onEliminar && tieneMiembros && (
-              <span className="text-[10px] text-gray-400">Para eliminarlo, primero mueve a sus miembros a otro grupo.</span>
+              <span className="text-sm texto-suave">Para eliminarlo, primero mueve a sus miembros a otro grupo.</span>
             )}
           </div>
         )}
@@ -128,26 +128,28 @@ function TarjetaGrupo({ grupo, onAccionInvitacion, onRenombrar, onEliminar }) {
       {grupo.miembros.length === 0 ? (
         <p className="text-sm text-gray-500">Aún no hay miembros en este grupo.</p>
       ) : (
-        <table className="w-full text-sm text-left">
-          <thead className="text-xs uppercase text-gray-500 border-b">
-            <tr>
-              <th className="py-2 pr-2">Nombre</th>
-              <th className="py-2 pr-2">Correo</th>
-              <th className="py-2">Rol</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-100">
-            {grupo.miembros.map((m) => (
-              <tr key={m.id}>
-                <td className="py-2 pr-2 font-medium text-gray-800">{m.nombre || '—'}</td>
-                <td className="py-2 pr-2 text-gray-600">{m.email}</td>
-                <td className="py-2">
-                  <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${claseRol(m.nivel)}`}>{m.rol}</span>
-                </td>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm text-left">
+            <thead className="text-xs uppercase text-gray-500 border-b">
+              <tr>
+                <th className="py-2 pr-2">Nombre</th>
+                <th className="py-2 pr-2">Correo</th>
+                <th className="py-2">Rol</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {grupo.miembros.map((m) => (
+                <tr key={m.id}>
+                  <td className="py-2 pr-2 font-medium text-gray-800">{m.nombre || '—'}</td>
+                  <td className="py-2 pr-2 text-gray-600">{m.email}</td>
+                  <td className="py-2">
+                    <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${claseRol(m.nivel)}`}>{m.rol}</span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
 
       {grupo.invitacionesPendientes.length > 0 && (
@@ -156,9 +158,9 @@ function TarjetaGrupo({ grupo, onAccionInvitacion, onRenombrar, onEliminar }) {
           <ul className="text-sm divide-y divide-gray-100">
             {grupo.invitacionesPendientes.map((i) => (
               <li key={i.id} className="py-2 flex flex-wrap justify-between items-center gap-2 text-gray-600">
-                <div className="flex flex-col">
-                  <span className="font-medium">{i.email} · {i.rol}</span>
-                  <span className="text-[10px] text-gray-400">vence {formatoFecha(i.expira)}</span>
+                <div className="flex min-w-0 flex-col">
+                  <span className="font-medium break-words">{i.email} · {i.rol}</span>
+                  <span className="text-sm texto-suave">vence {formatoFecha(i.expira)}</span>
                 </div>
                 {onAccionInvitacion && (
                   <div className="flex gap-2">
@@ -250,9 +252,9 @@ export default function Grupos() {
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
       {/* Encabezado con los botones de acción segun permisos */}
-      <div className="border-b pb-4 border-gray-200 flex items-center justify-between">
+      <div className="border-b pb-4 border-gray-200 flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-bold text-gray-800">Grupos</h1>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           {puede('verReporteGeneral') && (
             <Link to="/app/reportes/general" className="btn bg-emerald-600 hover:bg-emerald-700 text-white">
               Ver Reporte General
@@ -268,7 +270,7 @@ export default function Grupos() {
         {/* Crear grupos es exclusivo del Administrador (HU-11); el Jefe solo ve los grupos que dirige */}
         {puede('crearGrupos') && <FormularioGrupo onCreado={cargarGrupos} />}
 
-        <div className={`space-y-4 ${puede('crearGrupos') ? 'lg:col-span-2' : 'lg:col-span-3'}`}>
+        <div className={`min-w-0 space-y-4 ${puede('crearGrupos') ? 'lg:col-span-2' : 'lg:col-span-3'}`}>
           {error ? (
             <ErrorCarga onReintentar={cargarGrupos}>{error}</ErrorCarga>
           ) : grupos === null ? (

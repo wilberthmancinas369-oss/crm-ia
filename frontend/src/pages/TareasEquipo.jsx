@@ -126,7 +126,7 @@ export default function TareasEquipo() {
     <div className="p-4 sm:p-6 max-w-7xl mx-auto space-y-6">
       <div className="border-b pb-4 border-gray-200">
         <h1 className="text-2xl font-bold text-gray-800">Tareas del equipo</h1>
-        <p className="text-sm text-gray-500 mt-1">Consulta las tareas de los miembros de tu grupo, asígnalas a otra persona, edítalas o elimínalas.</p>
+        <p className="subtitulo">Consulta las tareas de los miembros de tu grupo, asígnalas a otra persona, edítalas o elimínalas.</p>
       </div>
 
       {cargando ? <Cargando>Cargando tareas del equipo…</Cargando> : errorCarga ? (
